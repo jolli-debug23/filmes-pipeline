@@ -1,0 +1,15 @@
+{
+  "config": {
+    "tmdb_pages": 3,
+    "tmdb_sort_by": "popularity.desc",
+    "source": "discover/movie + movie details + omdb"
+  },
+  "config_hash": "ea74926b5f1c",
+  "run_started_at": "2026-09-15T19:07:19.216397",
+  "run_finished_at": "2026-09-15T19:08:03.596027",
+  "n_movies_collected": 60,
+  "n_errors": 0,
+  "errors": [],
+  "python_version": "3.14.2 (tags/v3.14.2:df79316, Dec  5 2025, 17:18:21) [MSC v.1944 64 bit (AMD64)]",
+  "requests_version": "2.34.2"
+}
