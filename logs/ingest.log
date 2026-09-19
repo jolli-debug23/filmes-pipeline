@@ -44,3 +44,11 @@
 2026-09-19 10:19:58,100 [INFO] Concluído: 50 filmes novos salvos em dados-tmdb_omdb-20260919-101907.json (total acumulado: 900). Requisições hoje — TMDB: 901, OMDB: 843/900.
 2026-09-19 10:21:15,703 [INFO] Início da coleta: 900 filmes já coletados até agora, retomando a partir da página 55 do TMDB discover.
 2026-09-19 10:22:06,013 [INFO] Concluído: 50 filmes novos salvos em dados-tmdb_omdb-20260919-102115.json (total acumulado: 950). Requisições hoje — TMDB: 954, OMDB: 893/900.
+2026-09-19 16:09:11,571 [INFO] Início da coleta: 950 filmes já coletados até agora, retomando a partir da página 58 do TMDB discover.
+2026-09-19 16:09:19,176 [WARNING] Limite diário do OMDB (900) atingido — filmes restantes deste run ficam sem enriquecimento OMDB até amanhã.
+2026-09-19 16:09:30,542 [INFO] Concluído: 50 filmes novos salvos em dados-tmdb_omdb-20260919-160911.json (total acumulado: 1000). Requisições hoje — TMDB: 1008, OMDB: 900/900.
+2026-09-19 16:09:31,096 [INFO] Início da coleta: 1000 filmes já coletados até agora, retomando a partir da página 62 do TMDB discover.
+2026-09-19 16:09:32,131 [WARNING] Limite diário do OMDB (900) atingido — filmes restantes deste run ficam sem enriquecimento OMDB até amanhã.
+2026-09-19 16:09:33,111 [INFO] Início da coleta: 1002 filmes já coletados até agora, retomando a partir da página 62 do TMDB discover.
+2026-09-19 16:09:34,329 [WARNING] Limite diário do OMDB (900) atingido — filmes restantes deste run ficam sem enriquecimento OMDB até amanhã.
+2026-09-19 16:09:47,575 [INFO] Concluído: 50 filmes novos salvos em dados-tmdb_omdb-20260919-160933.json (total acumulado: 1052). Requisições hoje — TMDB: 1065, OMDB: 900/900.
