@@ -1,0 +1,2 @@
+2026-09-19 10:23:44,548 [INFO] 1010 registros brutos lidos de data/raw/.
+2026-09-19 10:23:44,630 [INFO] Duplicatas: 1010 registros antes, 959 depois (51 removidos, mantendo sempre a cópia mais completa).
