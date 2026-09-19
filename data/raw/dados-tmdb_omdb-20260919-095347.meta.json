@@ -1,0 +1,17 @@
+{
+  "run_started_at": "2026-09-19T09:53:47.557230",
+  "run_finished_at": "2026-09-19T09:54:37.069958",
+  "n_movies_collected_this_run": 50,
+  "n_movies_collected_total": 500,
+  "n_errors": 0,
+  "errors": [],
+  "omdb_daily_budget_hit": false,
+  "tmdb_requests_today": 477,
+  "omdb_requests_today": 446,
+  "tmdb_requests_per_sec_limit": 4.0,
+  "omdb_min_interval_sec": 1.0,
+  "omdb_daily_limit": 900,
+  "next_discover_page": 31,
+  "python_version": "3.14.2 (tags/v3.14.2:df79316, Dec  5 2025, 17:18:21) [MSC v.1944 64 bit (AMD64)]",
+  "requests_version": "2.34.2"
+}
