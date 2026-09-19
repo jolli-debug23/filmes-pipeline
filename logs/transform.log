@@ -1,2 +1,8 @@
 2026-09-19 10:23:44,548 [INFO] 1010 registros brutos lidos de data/raw/.
 2026-09-19 10:23:44,630 [INFO] Duplicatas: 1010 registros antes, 959 depois (51 removidos, mantendo sempre a cópia mais completa).
+2026-09-19 10:33:42,727 [INFO] 1010 registros brutos lidos de data/raw/.
+2026-09-19 10:33:42,811 [INFO] Duplicatas: 1010 registros antes, 959 depois (51 removidos, mantendo sempre a cópia mais completa).
+2026-09-19 10:34:16,677 [INFO] Concluído: 951 em trusted, 8 em quarentena.
+2026-09-19 10:34:19,704 [INFO] 1010 registros brutos lidos de data/raw/.
+2026-09-19 10:34:19,760 [INFO] Duplicatas: 1010 registros antes, 959 depois (51 removidos, mantendo sempre a cópia mais completa).
+2026-09-19 10:34:54,204 [INFO] Concluído: 951 em trusted, 8 em quarentena.
