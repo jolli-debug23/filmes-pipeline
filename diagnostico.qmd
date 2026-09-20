@@ -1,0 +1,247 @@
+---
+title: "Diagnóstico de Qualidade, Filmes (TMDB + OMDB)"
+subtitle: "Atividade Prática Etapa 1, Introdução à Ciência de Dados"
+author: "João Victor oliveira Silva - 20231SI0005, Akilan"
+date: today
+format:
+  html:
+    toc: true
+    code-fold: show
+execute:
+  echo: true
+---
+
+## Contexto
+
+**Pergunta analítica**: quais atributos estruturais de um filme, gênero,
+duração, orçamento, diretor, elenco principal, idioma original, franquia,
+nota do público, estão associados a ele ter recebido indicação ou vitória
+em premiação (campo `Awards` do OMDB)?
+
+Este notebook diagnostica a qualidade do dado **bruto** (`data/raw/`),
+antes de qualquer tratamento. As decisões justificadas aqui (Seção 3) são
+as que `src/transform.py` implementa na camada trusted, os dois arquivos
+contam a mesma história em dois momentos: aqui ela é descoberta e
+justificada, lá ela é executada em produção.
+
+```{python}
+import json
+from pathlib import Path
+
+import duckdb
+import numpy as np
+import pandas as pd
+
+RAW_DIR = Path("data/raw")
+
+
+def carregar_bruto_sem_tratamento() -> pd.DataFrame:
+    """Achata o JSON bruto SEM aplicar nenhum tratamento, propositalmente
+    diferente do flatten_record() de src/transform.py, porque aqui o
+    objetivo é diagnosticar os problemas como eles chegam da fonte, não
+    analisar um dado que já foi corrigido antes de olharmos para ele."""
+    arquivos = sorted(
+        f for f in RAW_DIR.glob("dados-tmdb_omdb-*.json")
+        if not f.name.endswith(".meta.json")
+    )
+    assert arquivos, "Nenhum arquivo bruto em data/raw/, rode src/ingest.py primeiro."
+
+    registros = []
+    for arq in arquivos:
+        registros.extend(json.loads(arq.read_text(encoding="utf-8")))
+
+    linhas = []
+    for r in registros:
+        d = r.get("tmdb_details") or {}
+        o = r.get("omdb_data") or {}
+        crew = (d.get("credits") or {}).get("crew") or []
+        countries = d.get("production_countries") or []
+        linhas.append({
+            "tmdb_id": d.get("id") or r.get("tmdb_id"),
+            "titulo": d.get("title"),
+            "data_lancamento": d.get("release_date"),
+            "status": d.get("status"),
+            "generos": ";".join(g["name"] for g in d.get("genres") or []),
+            "duracao_min": d.get("runtime"),
+            "orcamento": d.get("budget"),
+            "receita": d.get("revenue"),
+            "idioma_original": d.get("original_language"),
+            "pais_producao": countries[0]["iso_3166_1"] if countries else None,
+            "diretor": ";".join(p["name"] for p in crew if p.get("job") == "Director"),
+            "popularidade_tmdb": d.get("popularity"),
+            "nota_tmdb": d.get("vote_average"),
+            "n_votos_tmdb": d.get("vote_count"),
+            "imdb_id": d.get("imdb_id"),
+            "nota_imdb": o.get("imdbRating"),
+            "metascore": o.get("Metascore"),
+            "premios_texto": o.get("Awards"),
+        })
+    return pd.DataFrame(linhas)
+
+
+filmes_bruto = carregar_bruto_sem_tratamento()
+con = duckdb.connect()
+con.register("filmes_bruto", filmes_bruto)
+print(f"{len(filmes_bruto)} registros brutos carregados de data/raw/.")
+```
+
+## 1. Perfil
+
+```{python}
+con.sql("SUMMARIZE filmes_bruto").df()
+```
+
+> **O que o perfil denuncia**: `orcamento` e `receita` têm mínimo 0 e cerca
+> de 16-17% dos registros nesse valor, não é "filme sem custo", é "TMDB
+> não tem essa informação" (confirmado na Seção 3). `nota_tmdb` também tem
+> mínimo 0 numa cauda separada do resto da distribuição, e isso
+> correlaciona perfeitamente com `n_votos_tmdb = 0` (14 filmes, todos ainda
+> não lançados, ex.: sequências anunciadas sem data de estreia definida):
+> filme sem avaliação ainda, não nota ruim. `premios_texto`, `metascore` e
+> `nota_imdb` têm taxa de nulo maior (14-25%) que as colunas vindas só do
+> TMDB (abaixo de 1%), esperado porque nem todo filme do TMDB tem entrada
+> completa no OMDB, e parte dessa lacuna, nos primeiros ~1.000 registros
+> coletados, veio de bater o limite diário de requisições do OMDB (ver
+> "onde a equipe travou" no relatório).
+
+## 2. Duplicatas
+
+```{python}
+n_total = con.sql("SELECT COUNT(*) AS n FROM filmes_bruto").df()["n"][0]
+n_distintos = con.sql("SELECT COUNT(DISTINCT tmdb_id) AS n FROM filmes_bruto").df()["n"][0]
+print(f"Total de linhas: {n_total}")
+print(f"tmdb_id distintos: {n_distintos}")
+print(f"Duplicatas: {n_total - n_distintos}")
+```
+
+> A causa: o primeiro run de coleta (15/09) usou uma versão inicial do
+> `ingest.py` que buscava páginas fixas sem controle de estado; poucos
+> minutos depois, já rodando a versão incremental (com `state.json`), a
+> equipe recomeçou do zero por não haver ainda um estado salvo, as duas
+> coletas se sobrepuseram nas páginas iniciais do `discover` (ordenado por
+> popularidade), gerando `tmdb_id` repetidos entre arquivos de
+> `data/raw/`. Não se repetiu depois: da versão incremental em diante, o
+> `state.json` impede duplicata por desenho.
+
+Removendo as duplicatas **antes** de qualquer outra estatística, mantendo
+sempre a linha mais completa (mais colunas preenchidas) para aquele
+`tmdb_id`, não simplesmente a mais recente:
+
+```{python}
+filmes = (
+    filmes_bruto.assign(_completude=filmes_bruto.notna().sum(axis=1))
+    .sort_values("_completude", ascending=False)
+    .drop_duplicates(subset=["tmdb_id"], keep="first")
+    .drop(columns="_completude")
+)
+con.register("filmes", filmes)
+print(f"{len(filmes)} filmes após remover duplicatas.")
+```
+
+## 3. Tabela de decisão
+
+| Problema encontrado | Critério de detecção | Decisão | Por quê |
+|---|---|---|---|
+| `orcamento = 0` | `orcamento = 0` | Tratar como ausente: `orcamento_desconhecido = True`, valor vira nulo | TMDB usa 0 como "sem essa informação", não "custou zero"; manter o zero distorceria qualquer estatística de custo |
+| `receita = 0` | `receita = 0` | Mesma decisão do orçamento | Mesma convenção do TMDB para receita |
+| `nota_tmdb = 0` **e** `n_votos_tmdb = 0` | ambas as condições juntas | Tratar como ausente: nota vira nula | Sem nenhum voto, a média mostrada é 0.0 por padrão da API, não é uma nota real (confirmado abaixo: são exatamente os mesmos registros) |
+| `status = 'Released'` e `duracao_min` nula ou 0 | ambas as condições juntas | Quarentena | Um filme já lançado logicamente tem duração conhecida, inconsistência forte demais pra corrigir sozinho, melhor isolar e revisar |
+| `premios_texto` nulo ou `"N/A"` | ausência do campo | `teve_premiacao = False` | Falta de evidência de prêmio não é o mesmo que evidência de ausência de prêmio, é uma suposição declarada, não um fato medido |
+
+Consultas que sustentam cada linha da tabela:
+
+```{python}
+print("orcamento == 0:", int((filmes["orcamento"] == 0).sum()))
+print("receita == 0:", int((filmes["receita"] == 0).sum()))
+
+sem_voto = filmes["n_votos_tmdb"].fillna(0) == 0
+nota_zero = filmes["nota_tmdb"] == 0
+print("nota_tmdb == 0:", int(nota_zero.sum()))
+print("n_votos_tmdb == 0:", int(sem_voto.sum()))
+print("os dois conjuntos são idênticos:", bool((nota_zero == sem_voto).all()))
+
+print(
+    "status Released com duracao_min nula/0:",
+    int(((filmes["status"] == "Released") & (filmes["duracao_min"].fillna(0) <= 0)).sum()),
+)
+print(
+    "premios_texto ausente ou N/A:",
+    int((filmes["premios_texto"].isna() | (filmes["premios_texto"] == "N/A")).sum()),
+)
+```
+
+## 4. Tratamento
+
+```{python}
+tratado = filmes.copy()
+
+tratado["orcamento_desconhecido"] = tratado["orcamento"].fillna(0).eq(0)
+tratado.loc[tratado["orcamento_desconhecido"], "orcamento"] = pd.NA
+
+tratado["receita_desconhecida"] = tratado["receita"].fillna(0).eq(0)
+tratado.loc[tratado["receita_desconhecida"], "receita"] = pd.NA
+
+sem_voto = tratado["n_votos_tmdb"].fillna(0).eq(0)
+tratado.loc[sem_voto, "nota_tmdb"] = pd.NA
+
+# Um assert por decisão, se algum destes falhar, o tratamento tem um furo.
+assert tratado.loc[tratado["orcamento_desconhecido"], "orcamento"].isna().all(), \
+    "orcamento_desconhecido deveria implicar orcamento nulo"
+assert tratado.loc[tratado["receita_desconhecida"], "receita"].isna().all(), \
+    "receita_desconhecida deveria implicar receita nula"
+assert tratado.loc[sem_voto, "nota_tmdb"].isna().all(), \
+    "filme sem voto deveria ficar com nota_tmdb nula"
+
+print("Tratamento aplicado, os 3 asserts passaram.")
+```
+
+## 5. Quarentena
+
+```{python}
+suspeitos = tratado[
+    (tratado["status"] == "Released") & (tratado["duracao_min"].fillna(0) <= 0)
+].copy()
+suspeitos["motivo"] = "filme_lancado_sem_duracao"
+
+print(f"{len(suspeitos)} registro(s) em quarentena.")
+suspeitos[["tmdb_id", "titulo", "status", "duracao_min", "motivo"]]
+```
+
+## 6. Erro da imputação
+
+Antes de decidir manter os valores ausentes como nulos (Seção 4), testamos
+se valeria a pena **imputar** `nota_imdb` a partir de `metascore` (a métrica
+mais correlacionada disponível). Método: mascaramento, escondemos a nota
+real de uma amostra que já tem as duas colunas preenchidas, "imputamos" com
+uma regressão linear simples treinada no restante, e medimos o erro contra
+o valor real escondido.
+
+```{python}
+com_ambos = tratado.dropna(subset=["nota_imdb", "metascore"]).copy()
+com_ambos["nota_imdb"] = pd.to_numeric(com_ambos["nota_imdb"], errors="coerce")
+com_ambos["metascore"] = pd.to_numeric(com_ambos["metascore"], errors="coerce")
+com_ambos = com_ambos.dropna(subset=["nota_imdb", "metascore"])
+
+rng = np.random.default_rng(42)
+mascara = rng.random(len(com_ambos)) < 0.2
+treino, mascarado = com_ambos[~mascara], com_ambos[mascara]
+
+coef = np.polyfit(treino["metascore"], treino["nota_imdb"], deg=1)
+previsto = np.polyval(coef, mascarado["metascore"])
+erro_mae = float(np.mean(np.abs(previsto - mascarado["nota_imdb"])))
+
+print(f"MAE da imputação simulada de nota_imdb via metascore: {erro_mae:.2f} pontos (escala 0-10)")
+print(f"Amostra mascarada: {len(mascarado)} filmes de {len(com_ambos)} com as duas notas conhecidas")
+```
+
+> **Resultado real**: MAE de **0,46 ponto** (escala 0-10), sobre uma
+> amostra de 205 filmes mascarados de 933 com as duas notas conhecidas
+> (`coef ≈ 0,042·metascore + 4,32`). É um erro moderado, nem alto o
+> bastante pra descartar de cara, nem baixo o bastante pra imputar sem
+> pensar. A decisão da equipe foi **não imputar de verdade** na pipeline
+> de produção (`src/transform.py`): `nota_imdb` é uma variável explicativa
+> candidata para a pergunta de premiação, não o alvo, e um modelo consegue
+> tratar sua ausência explicitamente via `tem_dado_omdb` sem herdar um
+> viés sistemático de ~0,46 ponto introduzido por uma imputação.
+> Preferimos que a ausência fique visível a escondê-la atrás de um valor
+> estimado.
