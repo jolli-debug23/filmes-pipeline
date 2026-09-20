@@ -52,3 +52,8 @@
 2026-09-19 16:09:33,111 [INFO] Início da coleta: 1002 filmes já coletados até agora, retomando a partir da página 62 do TMDB discover.
 2026-09-19 16:09:34,329 [WARNING] Limite diário do OMDB (900) atingido — filmes restantes deste run ficam sem enriquecimento OMDB até amanhã.
 2026-09-19 16:09:47,575 [INFO] Concluído: 50 filmes novos salvos em dados-tmdb_omdb-20260919-160933.json (total acumulado: 1052). Requisições hoje — TMDB: 1065, OMDB: 900/900.
+2026-09-20 15:43:43,213 [INFO] Novo dia detectado — zerando contadores de requisição diários.
+2026-09-20 15:43:43,214 [INFO] 92 filme(s) pendente(s) de enriquecimento OMDB — tentando recuperar.
+2026-09-20 15:45:15,361 [INFO] Backfill OMDB: 92 recuperado(s), 0 ainda pendente(s) para o próximo dia.
+2026-09-20 15:45:15,367 [INFO] Início da coleta: 1052 filmes já coletados até agora, retomando a partir da página 66 do TMDB discover.
+2026-09-20 15:46:05,556 [INFO] Concluído: 142 filmes gravados nesta execução (92 recuperados via backfill OMDB, 50 novos; total acumulado: 1102). Gravado em C:\Users\LENOVO T480\OneDrive\Documentos\GitHub\filmes-pipeline\data\raw\dados-tmdb_omdb-20260920-154343.json. Pendentes de OMDB para próxima execução: 0. Requisições hoje — TMDB: 147, OMDB: 142/900.
