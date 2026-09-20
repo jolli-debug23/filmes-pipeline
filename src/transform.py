@@ -156,6 +156,11 @@ def flatten_record(record: dict) -> dict:
 
     budget = details.get("budget") or 0
     revenue = details.get("revenue") or 0
+    vote_count = details.get("vote_count") or 0
+    # Sem nenhum voto, o TMDB mostra vote_average = 0.0 — isso é "ainda
+    # sem nota", não "nota mínima". Mesma armadilha do orçamento/receita
+    # zerados, tratada da mesma forma: vira nulo, não um zero real.
+    vote_average = details.get("vote_average") if vote_count > 0 else None
 
     return {
         "tmdb_id": details.get("id") or record.get("tmdb_id"),
@@ -174,8 +179,8 @@ def flatten_record(record: dict) -> dict:
         "elenco_principal": top_cast or None,
         "tem_franquia": details.get("belongs_to_collection") is not None,
         "popularidade_tmdb": details.get("popularity"),
-        "nota_tmdb": details.get("vote_average"),
-        "n_votos_tmdb": details.get("vote_count"),
+        "nota_tmdb": vote_average,
+        "n_votos_tmdb": vote_count,
         "imdb_id": na_if_placeholder(details.get("imdb_id")),
         "tem_dado_omdb": bool(omdb),
         "nota_imdb": to_float_or_none(omdb.get("imdbRating")),
