@@ -1,0 +1,23 @@
+{
+  "fonte": {
+    "tmdb": "https://api.themoviedb.org/3/discover/movie + /movie/{id}",
+    "omdb": "http://www.omdbapi.com/"
+  },
+  "run_started_at": "2026-09-20T15:43:43.214273",
+  "run_finished_at": "2026-09-20T15:46:05.554671",
+  "n_movies_collected_this_run": 142,
+  "n_movies_recovered_backfill_omdb": 92,
+  "n_movies_collected_total": 1102,
+  "n_pendentes_omdb_restantes": 0,
+  "n_errors": 0,
+  "errors": [],
+  "omdb_daily_budget_hit": false,
+  "tmdb_requests_today": 147,
+  "omdb_requests_today": 142,
+  "tmdb_requests_per_sec_limit": 4.0,
+  "omdb_min_interval_sec": 1.0,
+  "omdb_daily_limit": 900,
+  "next_discover_page": 71,
+  "python_version": "3.14.2 (tags/v3.14.2:df79316, Dec  5 2025, 17:18:21) [MSC v.1944 64 bit (AMD64)]",
+  "requests_version": "2.34.2"
+}
