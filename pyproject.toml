@@ -1,10 +1,11 @@
 [project]
-name = "retailco-pipeline"
-version = "0.1.0"
+name = "filmes-pipeline"
+version = "1.0.0"
 description = "Add your description here"
 readme = "README.md"
 authors = [
-    { name = "Oliver Dee", email = "contact.eoliver@gmail.com" }
+    { name = "Joao Victor Oliveira Silva", email = "oliveira.v@acad.ifma.edu.br" }
+    { name = "Akilan", email = "@acad.ifma.edu.br" }
 ]
 requires-python = ">=3.14"
 dependencies = [
@@ -14,12 +15,6 @@ dependencies = [
     "pandera>=0.33.1",
     "pyarrow>=25.0.1",
     "python-dotenv>=1.2.3",
+    "quarto-cli>=1.10.18",
     "requests>=2.34.2",
 ]
-
-[project.scripts]
-retailco-pipeline = "retailco_pipeline:main"
-
-[build-system]
-requires = ["uv_build>=0.12.10,<0.13.0"]
-build-backend = "uv_build"

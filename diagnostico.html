@@ -1,0 +1,1222 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.10.18">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="[preencher: nome e matrícula de cada integrante]">
+<meta name="dcterms.date" content="2026-09-26">
+
+<title>Diagnóstico de Qualidade: Filmes (TMDB + OMDB)</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js" integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2" crossorigin="anonymous"></script><script src="diagnostico_files/libs/clipboard/clipboard.min.js"></script>
+<script src="diagnostico_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="diagnostico_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="diagnostico_files/libs/quarto-html/popper.min.js"></script>
+<script src="diagnostico_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="diagnostico_files/libs/quarto-html/anchor.min.js"></script>
+<link href="diagnostico_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="diagnostico_files/libs/quarto-html/quarto-syntax-highlighting-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="diagnostico_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="diagnostico_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="diagnostico_files/libs/bootstrap/bootstrap-215b371544c282197b31c8aa00ce3677.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="https://cdn.jsdelivr.net/npm/requirejs@2.3.6/require.min.js" integrity="sha384-c9c+LnTbwQ3aujuU7ULEPVvgLs+Fn6fJUvIGTsuu1ZcCf11fiEubah0ttpca4ntM sha384-6V1/AdqZRWk1KAlWbKBlGhN7VG4iE/yAZcO6NZPMF8od0vukrvr0tg4qY6NSrItx" crossorigin="anonymous"></script>
+
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#contexto" id="toc-contexto" class="nav-link active" data-scroll-target="#contexto">Contexto</a></li>
+  <li><a href="#perfil" id="toc-perfil" class="nav-link" data-scroll-target="#perfil">1. Perfil</a></li>
+  <li><a href="#duplicatas" id="toc-duplicatas" class="nav-link" data-scroll-target="#duplicatas">2. Duplicatas</a></li>
+  <li><a href="#tabela-de-decisão" id="toc-tabela-de-decisão" class="nav-link" data-scroll-target="#tabela-de-decisão">3. Tabela de decisão</a></li>
+  <li><a href="#tratamento" id="toc-tratamento" class="nav-link" data-scroll-target="#tratamento">4. Tratamento</a></li>
+  <li><a href="#quarentena" id="toc-quarentena" class="nav-link" data-scroll-target="#quarentena">5. Quarentena</a></li>
+  <li><a href="#erro-da-imputação" id="toc-erro-da-imputação" class="nav-link" data-scroll-target="#erro-da-imputação">6. Erro da imputação</a></li>
+  </ul>
+</nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Diagnóstico de Qualidade: Filmes (TMDB + OMDB)</h1>
+<p class="subtitle lead">Atividade Prática Etapa 1: Introdução à Ciência de Dados</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>[preencher: nome e matrícula de cada integrante] </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">September 26, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="contexto" class="level2">
+<h2 class="anchored" data-anchor-id="contexto">Contexto</h2>
+<p><strong>Pergunta analítica</strong>: quais atributos estruturais de um filme (gênero, duração, orçamento, diretor, elenco principal, idioma original, franquia, nota do público) estão associados a ele ter recebido indicação ou vitória em premiação (campo <code>Awards</code> do OMDB)?</p>
+<p>Este notebook diagnostica a qualidade do dado <strong>bruto</strong> (<code>data/raw/</code>), antes de qualquer tratamento. As decisões justificadas aqui (Seção 3) são as que <code>src/transform.py</code> implementa na camada trusted. Os dois arquivos contam a mesma história em dois momentos: aqui ela é descoberta e justificada, lá ela é executada em produção.</p>
+<div id="ab4e1b60" class="cell" data-execution_count="1">
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> duckdb</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>RAW_DIR <span class="op">=</span> Path(<span class="st">"data/raw"</span>)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> carregar_bruto_sem_tratamento() <span class="op">-&gt;</span> pd.DataFrame:</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Achata o JSON bruto SEM aplicar nenhum tratamento, propositalmente</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co">    diferente do flatten_record() de src/transform.py, porque aqui o</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="co">    objetivo é diagnosticar os problemas como eles chegam da fonte, não</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="co">    analisar um dado que já foi corrigido antes de olharmos para ele."""</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    arquivos <span class="op">=</span> <span class="bu">sorted</span>(</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>        f <span class="cf">for</span> f <span class="kw">in</span> RAW_DIR.glob(<span class="st">"dados-tmdb_omdb-*.json"</span>)</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> f.name.endswith(<span class="st">".meta.json"</span>)</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">assert</span> arquivos, <span class="st">"Nenhum arquivo bruto em data/raw/, rode src/ingest.py primeiro."</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>    registros <span class="op">=</span> []</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> arq <span class="kw">in</span> arquivos:</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>        registros.extend(json.loads(arq.read_text(encoding<span class="op">=</span><span class="st">"utf-8"</span>)))</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>    linhas <span class="op">=</span> []</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> r <span class="kw">in</span> registros:</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>        d <span class="op">=</span> r.get(<span class="st">"tmdb_details"</span>) <span class="kw">or</span> {}</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>        o <span class="op">=</span> r.get(<span class="st">"omdb_data"</span>) <span class="kw">or</span> {}</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>        crew <span class="op">=</span> (d.get(<span class="st">"credits"</span>) <span class="kw">or</span> {}).get(<span class="st">"crew"</span>) <span class="kw">or</span> []</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>        countries <span class="op">=</span> d.get(<span class="st">"production_countries"</span>) <span class="kw">or</span> []</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>        linhas.append({</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>            <span class="st">"tmdb_id"</span>: d.get(<span class="st">"id"</span>) <span class="kw">or</span> r.get(<span class="st">"tmdb_id"</span>),</span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>            <span class="st">"titulo"</span>: d.get(<span class="st">"title"</span>),</span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>            <span class="st">"data_lancamento"</span>: d.get(<span class="st">"release_date"</span>),</span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>            <span class="st">"status"</span>: d.get(<span class="st">"status"</span>),</span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>            <span class="st">"generos"</span>: <span class="st">";"</span>.join(g[<span class="st">"name"</span>] <span class="cf">for</span> g <span class="kw">in</span> d.get(<span class="st">"genres"</span>) <span class="kw">or</span> []),</span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>            <span class="st">"duracao_min"</span>: d.get(<span class="st">"runtime"</span>),</span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>            <span class="st">"orcamento"</span>: d.get(<span class="st">"budget"</span>),</span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>            <span class="st">"receita"</span>: d.get(<span class="st">"revenue"</span>),</span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>            <span class="st">"idioma_original"</span>: d.get(<span class="st">"original_language"</span>),</span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>            <span class="st">"pais_producao"</span>: countries[<span class="dv">0</span>][<span class="st">"iso_3166_1"</span>] <span class="cf">if</span> countries <span class="cf">else</span> <span class="va">None</span>,</span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a>            <span class="st">"diretor"</span>: <span class="st">";"</span>.join(p[<span class="st">"name"</span>] <span class="cf">for</span> p <span class="kw">in</span> crew <span class="cf">if</span> p.get(<span class="st">"job"</span>) <span class="op">==</span> <span class="st">"Director"</span>),</span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a>            <span class="st">"popularidade_tmdb"</span>: d.get(<span class="st">"popularity"</span>),</span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>            <span class="st">"nota_tmdb"</span>: d.get(<span class="st">"vote_average"</span>),</span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>            <span class="st">"n_votos_tmdb"</span>: d.get(<span class="st">"vote_count"</span>),</span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a>            <span class="st">"imdb_id"</span>: d.get(<span class="st">"imdb_id"</span>),</span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a>            <span class="st">"nota_imdb"</span>: o.get(<span class="st">"imdbRating"</span>),</span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>            <span class="st">"metascore"</span>: o.get(<span class="st">"Metascore"</span>),</span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a>            <span class="st">"premios_texto"</span>: o.get(<span class="st">"Awards"</span>),</span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a>        })</span>
+<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> pd.DataFrame(linhas)</span>
+<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a>filmes_bruto <span class="op">=</span> carregar_bruto_sem_tratamento()</span>
+<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a>con <span class="op">=</span> duckdb.<span class="ex">connect</span>()</span>
+<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a>con.register(<span class="st">"filmes_bruto"</span>, filmes_bruto)</span>
+<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span><span class="bu">len</span>(filmes_bruto)<span class="sc">}</span><span class="ss"> registros brutos carregados de data/raw/."</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>1252 registros brutos carregados de data/raw/.</code></pre>
+</div>
+</div>
+</section>
+<section id="perfil" class="level2">
+<h2 class="anchored" data-anchor-id="perfil">1. Perfil</h2>
+<div id="727ffa4d" class="cell" data-execution_count="2">
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>con.sql(<span class="st">"SUMMARIZE filmes_bruto"</span>).df()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-display" data-execution_count="2">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">column_name</th>
+<th data-quarto-table-cell-role="th">column_type</th>
+<th data-quarto-table-cell-role="th">min</th>
+<th data-quarto-table-cell-role="th">max</th>
+<th data-quarto-table-cell-role="th">approx_unique</th>
+<th data-quarto-table-cell-role="th">avg</th>
+<th data-quarto-table-cell-role="th">std</th>
+<th data-quarto-table-cell-role="th">q25</th>
+<th data-quarto-table-cell-role="th">q50</th>
+<th data-quarto-table-cell-role="th">q75</th>
+<th data-quarto-table-cell-role="th">count</th>
+<th data-quarto-table-cell-role="th">null_percentage</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">0</th>
+<td>tmdb_id</td>
+<td>BIGINT</td>
+<td>11</td>
+<td>1762506</td>
+<td>1189</td>
+<td>515897.7388178914</td>
+<td>532858.7075204873</td>
+<td>10034</td>
+<td>338404</td>
+<td>982462</td>
+<td>1252</td>
+<td>0.00</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">1</th>
+<td>titulo</td>
+<td>VARCHAR</td>
+<td>...E o Vento Levou</td>
+<td>화려한 외출</td>
+<td>1035</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>1252</td>
+<td>0.00</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">2</th>
+<td>data_lancamento</td>
+<td>VARCHAR</td>
+<td>1938-01-22</td>
+<td>2028-03-16</td>
+<td>990</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>1252</td>
+<td>0.00</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">3</th>
+<td>status</td>
+<td>VARCHAR</td>
+<td>In Production</td>
+<td>Released</td>
+<td>4</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>1252</td>
+<td>0.00</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">4</th>
+<td>generos</td>
+<td>VARCHAR</td>
+<td></td>
+<td>Thriller;Terror</td>
+<td>453</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>1252</td>
+<td>0.00</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">5</th>
+<td>duracao_min</td>
+<td>BIGINT</td>
+<td>0</td>
+<td>275</td>
+<td>161</td>
+<td>114.77795527156549</td>
+<td>28.236161081462562</td>
+<td>99</td>
+<td>112</td>
+<td>130</td>
+<td>1252</td>
+<td>0.00</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">6</th>
+<td>orcamento</td>
+<td>BIGINT</td>
+<td>0</td>
+<td>658800000</td>
+<td>183</td>
+<td>68173763.0399361</td>
+<td>75620523.50499348</td>
+<td>6967454</td>
+<td>40985036</td>
+<td>103440476</td>
+<td>1252</td>
+<td>0.00</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">7</th>
+<td>receita</td>
+<td>BIGINT</td>
+<td>0</td>
+<td>2923706026</td>
+<td>1033</td>
+<td>270857261.2651757</td>
+<td>368374904.56547904</td>
+<td>18745347</td>
+<td>148740521</td>
+<td>380554252</td>
+<td>1252</td>
+<td>0.00</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">8</th>
+<td>idioma_original</td>
+<td>VARCHAR</td>
+<td>cn</td>
+<td>zh</td>
+<td>27</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>1252</td>
+<td>0.00</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">9</th>
+<td>pais_producao</td>
+<td>VARCHAR</td>
+<td>AR</td>
+<td>VE</td>
+<td>37</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>1252</td>
+<td>0.56</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">10</th>
+<td>diretor</td>
+<td>VARCHAR</td>
+<td></td>
+<td>이윤기</td>
+<td>587</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>1252</td>
+<td>0.00</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">11</th>
+<td>popularidade_tmdb</td>
+<td>DOUBLE</td>
+<td>11.3836</td>
+<td>728.0506</td>
+<td>1124</td>
+<td>34.342008945686864</td>
+<td>53.106070455117646</td>
+<td>16.861353253119425</td>
+<td>20.63886021645022</td>
+<td>29.717065277777778</td>
+<td>1252</td>
+<td>0.00</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">12</th>
+<td>nota_tmdb</td>
+<td>DOUBLE</td>
+<td>0.0</td>
+<td>9.167</td>
+<td>744</td>
+<td>6.923258785942494</td>
+<td>1.2708869616088334</td>
+<td>6.554716577540107</td>
+<td>7.0900231166150665</td>
+<td>7.605162721893491</td>
+<td>1252</td>
+<td>0.00</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">13</th>
+<td>n_votos_tmdb</td>
+<td>BIGINT</td>
+<td>0</td>
+<td>40196</td>
+<td>1087</td>
+<td>6625.007188498403</td>
+<td>6619.340193604599</td>
+<td>1336</td>
+<td>5027</td>
+<td>9629</td>
+<td>1252</td>
+<td>0.00</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">14</th>
+<td>imdb_id</td>
+<td>VARCHAR</td>
+<td>tt0029583</td>
+<td>tt9848626</td>
+<td>1113</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>1252</td>
+<td>0.80</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">15</th>
+<td>nota_imdb</td>
+<td>VARCHAR</td>
+<td>1.8</td>
+<td>N/A</td>
+<td>73</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>1252</td>
+<td>8.47</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">16</th>
+<td>metascore</td>
+<td>VARCHAR</td>
+<td>100</td>
+<td>N/A</td>
+<td>71</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>1252</td>
+<td>8.47</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">17</th>
+<td>premios_texto</td>
+<td>VARCHAR</td>
+<td>. See the Top 250 movies as rated by IMDb users</td>
+<td>Won 8 Oscars. 26 wins &amp; 10 nominations total</td>
+<td>574</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>1252</td>
+<td>8.47</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<blockquote class="blockquote">
+<p><strong>O que o perfil denuncia</strong>: <code>orcamento</code> e <code>receita</code> têm mínimo 0 e cerca de 16-17% dos registros nesse valor, e isso não é “filme sem custo”, é “TMDB não tem essa informação” (confirmado na Seção 3). <code>nota_tmdb</code> também tem mínimo 0 numa cauda separada do resto da distribuição, e isso correlaciona perfeitamente com <code>n_votos_tmdb = 0</code> (20 filmes, todos ainda não lançados, por exemplo sequências anunciadas sem data de estreia definida): filme sem avaliação ainda, não nota ruim. <code>premios_texto</code>, <code>metascore</code> e <code>nota_imdb</code> têm taxa de nulo maior (14-25%) que as colunas vindas só do TMDB (abaixo de 1%), esperado porque nem todo filme do TMDB tem entrada completa no OMDB, e parte dessa lacuna, nos primeiros ~1.000 registros coletados, veio de bater o limite diário de requisições do OMDB (ver “onde a equipe travou” no relatório).</p>
+</blockquote>
+</section>
+<section id="duplicatas" class="level2">
+<h2 class="anchored" data-anchor-id="duplicatas">2. Duplicatas</h2>
+<div id="fe72c107" class="cell" data-execution_count="3">
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>n_total <span class="op">=</span> con.sql(<span class="st">"SELECT COUNT(*) AS n FROM filmes_bruto"</span>).df()[<span class="st">"n"</span>][<span class="dv">0</span>]</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>n_distintos <span class="op">=</span> con.sql(<span class="st">"SELECT COUNT(DISTINCT tmdb_id) AS n FROM filmes_bruto"</span>).df()[<span class="st">"n"</span>][<span class="dv">0</span>]</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Total de linhas: </span><span class="sc">{</span>n_total<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"tmdb_id distintos: </span><span class="sc">{</span>n_distintos<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Duplicatas: </span><span class="sc">{</span>n_total <span class="op">-</span> n_distintos<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Total de linhas: 1252
+tmdb_id distintos: 1109
+Duplicatas: 143</code></pre>
+</div>
+</div>
+<blockquote class="blockquote">
+<p>A causa: o primeiro run de coleta (15/09) usou uma versão inicial do <code>ingest.py</code> que buscava páginas fixas sem controle de estado; poucos minutos depois, já rodando a versão incremental (com <code>state.json</code>), a equipe recomeçou do zero por não haver ainda um estado salvo, e as duas coletas se sobrepuseram nas páginas iniciais do <code>discover</code> (ordenado por popularidade), gerando <code>tmdb_id</code> repetidos entre arquivos de <code>data/raw/</code>. Não se repetiu depois: da versão incremental em diante, o <code>state.json</code> impede duplicata por desenho.</p>
+</blockquote>
+<p>Removendo as duplicatas <strong>antes</strong> de qualquer outra estatística, mantendo sempre a linha mais completa (mais colunas preenchidas) para aquele <code>tmdb_id</code>, não simplesmente a mais recente:</p>
+<div id="4cddc8ac" class="cell" data-execution_count="4">
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>filmes <span class="op">=</span> (</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    filmes_bruto.assign(_completude<span class="op">=</span>filmes_bruto.notna().<span class="bu">sum</span>(axis<span class="op">=</span><span class="dv">1</span>))</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    .sort_values(<span class="st">"_completude"</span>, ascending<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    .drop_duplicates(subset<span class="op">=</span>[<span class="st">"tmdb_id"</span>], keep<span class="op">=</span><span class="st">"first"</span>)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    .drop(columns<span class="op">=</span><span class="st">"_completude"</span>)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>con.register(<span class="st">"filmes"</span>, filmes)</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span><span class="bu">len</span>(filmes)<span class="sc">}</span><span class="ss"> filmes após remover duplicatas."</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>1109 filmes após remover duplicatas.</code></pre>
+</div>
+</div>
+</section>
+<section id="tabela-de-decisão" class="level2">
+<h2 class="anchored" data-anchor-id="tabela-de-decisão">3. Tabela de decisão</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Problema encontrado</th>
+<th>Critério de detecção</th>
+<th>Decisão</th>
+<th>Por quê</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>orcamento = 0</code></td>
+<td><code>orcamento = 0</code></td>
+<td>Tratar como ausente: <code>orcamento_desconhecido = True</code>, valor vira nulo</td>
+<td>TMDB usa 0 como “sem essa informação”, não “custou zero”; manter o zero distorceria qualquer estatística de custo</td>
+</tr>
+<tr class="even">
+<td><code>receita = 0</code></td>
+<td><code>receita = 0</code></td>
+<td>Mesma decisão do orçamento</td>
+<td>Mesma convenção do TMDB para receita</td>
+</tr>
+<tr class="odd">
+<td><code>nota_tmdb = 0</code> <strong>e</strong> <code>n_votos_tmdb = 0</code></td>
+<td>ambas as condições juntas</td>
+<td>Tratar como ausente: nota vira nula</td>
+<td>Sem nenhum voto, a média mostrada é 0.0 por padrão da API, não é uma nota real (confirmado abaixo: são exatamente os mesmos registros)</td>
+</tr>
+<tr class="even">
+<td><code>status = 'Released'</code> e <code>duracao_min</code> nula ou 0</td>
+<td>ambas as condições juntas</td>
+<td>Quarentena</td>
+<td>Um filme já lançado logicamente tem duração conhecida, e essa inconsistência é forte demais pra corrigir sozinho, melhor isolar e revisar</td>
+</tr>
+<tr class="odd">
+<td><code>premios_texto</code> nulo ou <code>"N/A"</code></td>
+<td>ausência do campo</td>
+<td><code>teve_premiacao = False</code></td>
+<td>Falta de evidência de prêmio não é o mesmo que evidência de ausência de prêmio, é uma suposição declarada, não um fato medido</td>
+</tr>
+</tbody>
+</table>
+<p>Consultas que sustentam cada linha da tabela:</p>
+<div id="bb8a1bc5" class="cell" data-execution_count="5">
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"orcamento == 0:"</span>, <span class="bu">int</span>((filmes[<span class="st">"orcamento"</span>] <span class="op">==</span> <span class="dv">0</span>).<span class="bu">sum</span>()))</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"receita == 0:"</span>, <span class="bu">int</span>((filmes[<span class="st">"receita"</span>] <span class="op">==</span> <span class="dv">0</span>).<span class="bu">sum</span>()))</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>sem_voto <span class="op">=</span> filmes[<span class="st">"n_votos_tmdb"</span>].fillna(<span class="dv">0</span>) <span class="op">==</span> <span class="dv">0</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>nota_zero <span class="op">=</span> filmes[<span class="st">"nota_tmdb"</span>] <span class="op">==</span> <span class="dv">0</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"nota_tmdb == 0:"</span>, <span class="bu">int</span>(nota_zero.<span class="bu">sum</span>()))</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"n_votos_tmdb == 0:"</span>, <span class="bu">int</span>(sem_voto.<span class="bu">sum</span>()))</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"os dois conjuntos são idênticos:"</span>, <span class="bu">bool</span>((nota_zero <span class="op">==</span> sem_voto).<span class="bu">all</span>()))</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">"status Released com duracao_min nula/0:"</span>,</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    <span class="bu">int</span>(((filmes[<span class="st">"status"</span>] <span class="op">==</span> <span class="st">"Released"</span>) <span class="op">&amp;</span> (filmes[<span class="st">"duracao_min"</span>].fillna(<span class="dv">0</span>) <span class="op">&lt;=</span> <span class="dv">0</span>)).<span class="bu">sum</span>()),</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    <span class="st">"premios_texto ausente ou N/A:"</span>,</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>    <span class="bu">int</span>((filmes[<span class="st">"premios_texto"</span>].isna() <span class="op">|</span> (filmes[<span class="st">"premios_texto"</span>] <span class="op">==</span> <span class="st">"N/A"</span>)).<span class="bu">sum</span>()),</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>orcamento == 0: 189
+receita == 0: 190
+nota_tmdb == 0: 20
+n_votos_tmdb == 0: 20
+os dois conjuntos são idênticos: True
+status Released com duracao_min nula/0: 9
+premios_texto ausente ou N/A: 200</code></pre>
+</div>
+</div>
+</section>
+<section id="tratamento" class="level2">
+<h2 class="anchored" data-anchor-id="tratamento">4. Tratamento</h2>
+<div id="19456993" class="cell" data-execution_count="6">
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>tratado <span class="op">=</span> filmes.copy()</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>tratado[<span class="st">"orcamento_desconhecido"</span>] <span class="op">=</span> tratado[<span class="st">"orcamento"</span>].fillna(<span class="dv">0</span>).eq(<span class="dv">0</span>)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>tratado.loc[tratado[<span class="st">"orcamento_desconhecido"</span>], <span class="st">"orcamento"</span>] <span class="op">=</span> pd.NA</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>tratado[<span class="st">"receita_desconhecida"</span>] <span class="op">=</span> tratado[<span class="st">"receita"</span>].fillna(<span class="dv">0</span>).eq(<span class="dv">0</span>)</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>tratado.loc[tratado[<span class="st">"receita_desconhecida"</span>], <span class="st">"receita"</span>] <span class="op">=</span> pd.NA</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>sem_voto <span class="op">=</span> tratado[<span class="st">"n_votos_tmdb"</span>].fillna(<span class="dv">0</span>).eq(<span class="dv">0</span>)</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>tratado.loc[sem_voto, <span class="st">"nota_tmdb"</span>] <span class="op">=</span> pd.NA</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Um assert por decisão. Se algum destes falhar, o tratamento tem um furo.</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> tratado.loc[tratado[<span class="st">"orcamento_desconhecido"</span>], <span class="st">"orcamento"</span>].isna().<span class="bu">all</span>(), <span class="op">\</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    <span class="st">"orcamento_desconhecido deveria implicar orcamento nulo"</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> tratado.loc[tratado[<span class="st">"receita_desconhecida"</span>], <span class="st">"receita"</span>].isna().<span class="bu">all</span>(), <span class="op">\</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>    <span class="st">"receita_desconhecida deveria implicar receita nula"</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> tratado.loc[sem_voto, <span class="st">"nota_tmdb"</span>].isna().<span class="bu">all</span>(), <span class="op">\</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>    <span class="st">"filme sem voto deveria ficar com nota_tmdb nula"</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Tratamento aplicado, os 3 asserts passaram."</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Tratamento aplicado, os 3 asserts passaram.</code></pre>
+</div>
+</div>
+</section>
+<section id="quarentena" class="level2">
+<h2 class="anchored" data-anchor-id="quarentena">5. Quarentena</h2>
+<div id="46d29ba2" class="cell" data-execution_count="7">
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>suspeitos <span class="op">=</span> tratado[</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    (tratado[<span class="st">"status"</span>] <span class="op">==</span> <span class="st">"Released"</span>) <span class="op">&amp;</span> (tratado[<span class="st">"duracao_min"</span>].fillna(<span class="dv">0</span>) <span class="op">&lt;=</span> <span class="dv">0</span>)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>].copy()</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>suspeitos[<span class="st">"motivo"</span>] <span class="op">=</span> <span class="st">"filme_lancado_sem_duracao"</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span><span class="bu">len</span>(suspeitos)<span class="sc">}</span><span class="ss"> registro(s) em quarentena."</span>)</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>suspeitos[[<span class="st">"tmdb_id"</span>, <span class="st">"titulo"</span>, <span class="st">"status"</span>, <span class="st">"duracao_min"</span>, <span class="st">"motivo"</span>]]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>9 registro(s) em quarentena.</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="7">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">tmdb_id</th>
+<th data-quarto-table-cell-role="th">titulo</th>
+<th data-quarto-table-cell-role="th">status</th>
+<th data-quarto-table-cell-role="th">duracao_min</th>
+<th data-quarto-table-cell-role="th">motivo</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">40</th>
+<td>1599993</td>
+<td>Animales</td>
+<td>Released</td>
+<td>0</td>
+<td>filme_lancado_sem_duracao</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">226</th>
+<td>1462861</td>
+<td>Ilha das Aranhas</td>
+<td>Released</td>
+<td>0</td>
+<td>filme_lancado_sem_duracao</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">310</th>
+<td>1433568</td>
+<td>粽邪4：坤蒂拉娜</td>
+<td>Released</td>
+<td>0</td>
+<td>filme_lancado_sem_duracao</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">640</th>
+<td>1598766</td>
+<td>クレヨンしんちゃん 奇々怪々！オラの妖怪バケ～ション</td>
+<td>Released</td>
+<td>0</td>
+<td>filme_lancado_sem_duracao</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">663</th>
+<td>1275215</td>
+<td>Aves de Corral</td>
+<td>Released</td>
+<td>0</td>
+<td>filme_lancado_sem_duracao</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">490</th>
+<td>1249663</td>
+<td>Kangaroo Kids</td>
+<td>Released</td>
+<td>0</td>
+<td>filme_lancado_sem_duracao</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">1060</th>
+<td>1519414</td>
+<td>松山之殇</td>
+<td>Released</td>
+<td>0</td>
+<td>filme_lancado_sem_duracao</td>
+</tr>
+<tr class="even">
+<th data-quarto-table-cell-role="th">551</th>
+<td>1525963</td>
+<td>채무자의 아내</td>
+<td>Released</td>
+<td>0</td>
+<td>filme_lancado_sem_duracao</td>
+</tr>
+<tr class="odd">
+<th data-quarto-table-cell-role="th">85</th>
+<td>1494843</td>
+<td>丫丫</td>
+<td>Released</td>
+<td>0</td>
+<td>filme_lancado_sem_duracao</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</section>
+<section id="erro-da-imputação" class="level2">
+<h2 class="anchored" data-anchor-id="erro-da-imputação">6. Erro da imputação</h2>
+<p>Antes de decidir manter os valores ausentes como nulos (Seção 4), testamos se valeria a pena <strong>imputar</strong> <code>nota_imdb</code> a partir de <code>metascore</code> (a métrica mais correlacionada disponível). Método: mascaramento. Escondemos a nota real de uma amostra que já tem as duas colunas preenchidas, “imputamos” com uma regressão linear simples treinada no restante, e medimos o erro contra o valor real escondido.</p>
+<div id="35804377" class="cell" data-execution_count="8">
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>com_ambos <span class="op">=</span> tratado.dropna(subset<span class="op">=</span>[<span class="st">"nota_imdb"</span>, <span class="st">"metascore"</span>]).copy()</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>com_ambos[<span class="st">"nota_imdb"</span>] <span class="op">=</span> pd.to_numeric(com_ambos[<span class="st">"nota_imdb"</span>], errors<span class="op">=</span><span class="st">"coerce"</span>)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>com_ambos[<span class="st">"metascore"</span>] <span class="op">=</span> pd.to_numeric(com_ambos[<span class="st">"metascore"</span>], errors<span class="op">=</span><span class="st">"coerce"</span>)</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>com_ambos <span class="op">=</span> com_ambos.dropna(subset<span class="op">=</span>[<span class="st">"nota_imdb"</span>, <span class="st">"metascore"</span>])</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng(<span class="dv">42</span>)</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>mascara <span class="op">=</span> rng.random(<span class="bu">len</span>(com_ambos)) <span class="op">&lt;</span> <span class="fl">0.2</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>treino, mascarado <span class="op">=</span> com_ambos[<span class="op">~</span>mascara], com_ambos[mascara]</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>coef <span class="op">=</span> np.polyfit(treino[<span class="st">"metascore"</span>], treino[<span class="st">"nota_imdb"</span>], deg<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>previsto <span class="op">=</span> np.polyval(coef, mascarado[<span class="st">"metascore"</span>])</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>erro_mae <span class="op">=</span> <span class="bu">float</span>(np.mean(np.<span class="bu">abs</span>(previsto <span class="op">-</span> mascarado[<span class="st">"nota_imdb"</span>])))</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"MAE da imputação simulada de nota_imdb via metascore: </span><span class="sc">{</span>erro_mae<span class="sc">:.2f}</span><span class="ss"> pontos (escala 0-10)"</span>)</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Amostra mascarada: </span><span class="sc">{</span><span class="bu">len</span>(mascarado)<span class="sc">}</span><span class="ss"> filmes de </span><span class="sc">{</span><span class="bu">len</span>(com_ambos)<span class="sc">}</span><span class="ss"> com as duas notas conhecidas"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>MAE da imputação simulada de nota_imdb via metascore: 0.48 pontos (escala 0-10)
+Amostra mascarada: 205 filmes de 933 com as duas notas conhecidas</code></pre>
+</div>
+</div>
+<blockquote class="blockquote">
+<p><strong>Resultado real</strong>: MAE de <strong>0,46 ponto</strong> (escala 0-10), sobre uma amostra de 205 filmes mascarados de 933 com as duas notas conhecidas (<code>coef ≈ 0,042·metascore + 4,32</code>). É um erro moderado, nem alto o bastante pra descartar de cara, nem baixo o bastante pra imputar sem pensar. A decisão da equipe foi <strong>não imputar de verdade</strong> na pipeline de produção (<code>src/transform.py</code>): <code>nota_imdb</code> é uma variável explicativa candidata para a pergunta de premiação, não o alvo, e um modelo consegue tratar sua ausência explicitamente via <code>tem_dado_omdb</code> sem herdar um viés sistemático de ~0,46 ponto introduzido por uma imputação. Preferimos que a ausência fique visível a escondê-la atrás de um valor estimado.</p>
+</blockquote>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
