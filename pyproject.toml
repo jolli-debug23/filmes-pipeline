@@ -4,7 +4,7 @@ version = "1.0.0"
 description = "Add your description here"
 readme = "README.md"
 authors = [
-    { name = "Joao Victor Oliveira Silva", email = "oliveira.v@acad.ifma.edu.br" }
+    { name = "Joao Victor Oliveira Silva", email = "oliveira.v@acad.ifma.edu.br" },
     { name = "Akilan", email = "@acad.ifma.edu.br" }
 ]
 requires-python = ">=3.14"
