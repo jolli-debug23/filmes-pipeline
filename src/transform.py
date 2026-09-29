@@ -106,16 +106,31 @@ def to_float_or_none(value) -> float | None:
         return None
 
 
-AWARD_PATTERN = re.compile(r"\b(won|winner|nominated|nomination)\b", re.IGNORECASE)
+AWARD_WIN_PATTERN = re.compile(r"\b(win|wins|won|winner|winners)\b", re.IGNORECASE)
+AWARD_NOMINATION_PATTERN = re.compile(
+    r"\b(nominated|nomination|nominations)\b", re.IGNORECASE
+)
 
 
-def parse_awards(raw: str | None) -> bool:
-    """True se o texto do OMDB menciona vitória OU indicação (a pergunta
-    da equipe conta as duas); False se não há evidência disso."""
+def parse_awards(raw: str | None) -> dict[str, bool | None]:
+    """Separa vitória, indicação e ausência de informação no texto Awards."""
     raw = na_if_placeholder(raw)
     if raw is None:
-        return False
-    return bool(AWARD_PATTERN.search(raw))
+        return {
+            "teve_indicacao": None,
+            "teve_vitoria": None,
+            "teve_reconhecimento": None,
+            "awards_sem_informacao": True,
+        }
+
+    teve_indicacao = bool(AWARD_NOMINATION_PATTERN.search(raw))
+    teve_vitoria = bool(AWARD_WIN_PATTERN.search(raw))
+    return {
+        "teve_indicacao": teve_indicacao,
+        "teve_vitoria": teve_vitoria,
+        "teve_reconhecimento": teve_indicacao or teve_vitoria,
+        "awards_sem_informacao": False,
+    }
 
 
 # --------------------------------------------------------------------------
@@ -143,6 +158,7 @@ def load_raw_records() -> list[dict]:
 def flatten_record(record: dict) -> dict:
     details = record.get("tmdb_details") or {}
     omdb = record.get("omdb_data") or {}
+    award_flags = parse_awards(omdb.get("Awards"))
 
     genres = ";".join(g["name"] for g in details.get("genres") or [])
     countries = details.get("production_countries") or []
@@ -186,7 +202,7 @@ def flatten_record(record: dict) -> dict:
         "nota_imdb": to_float_or_none(omdb.get("imdbRating")),
         "metascore": to_float_or_none(omdb.get("Metascore")),
         "premios_texto": na_if_placeholder(omdb.get("Awards")),
-        "teve_premiacao": parse_awards(omdb.get("Awards")),
+        **award_flags,
     }
 
 
@@ -258,7 +274,10 @@ CONTRACT = DataFrameSchema(
         "nota_imdb": Column(float, Check.in_range(0, 10, error="nota_imdb_fora_do_intervalo"), nullable=True),
         "metascore": Column(float, Check.in_range(0, 100, error="metascore_fora_do_intervalo"), nullable=True),
         "premios_texto": Column(str, nullable=True),
-        "teve_premiacao": Column(bool, nullable=False),
+        "teve_indicacao": Column(bool, nullable=True),
+        "teve_vitoria": Column(bool, nullable=True),
+        "teve_reconhecimento": Column(bool, nullable=True),
+        "awards_sem_informacao": Column(bool, nullable=False),
     },
     checks=[
         # Regra de negócio de tabela, envolvendo duas colunas: um filme

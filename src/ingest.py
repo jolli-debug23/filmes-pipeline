@@ -68,7 +68,10 @@ load_dotenv(ROOT_DIR / ".env")
 
 TMDB_API_KEY = os.getenv("TMDB_API_KEY")
 OMDB_API_KEY = os.getenv("OMDB_API_KEY")
-TMDB_SORT_BY = "popularity.desc"
+TMDB_SORT_BY = os.getenv("TMDB_SORT_BY", "primary_release_date.asc")
+RELEASE_DATE_GTE = os.getenv("RELEASE_DATE_GTE", "2000-01-01")
+RELEASE_DATE_LTE = os.getenv("RELEASE_DATE_LTE", "2024-12-31")
+MIN_VOTE_COUNT = int(os.getenv("MIN_VOTE_COUNT", "100"))
 MAX_MOVIES_PER_RUN = int(os.getenv("MAX_MOVIES_PER_RUN", "50"))
 TMDB_REQUESTS_PER_SEC = float(os.getenv("TMDB_REQUESTS_PER_SEC", "4"))
 OMDB_MIN_INTERVAL_SEC = float(os.getenv("OMDB_MIN_INTERVAL_SEC", "1.0"))
@@ -246,6 +249,9 @@ def fetch_tmdb_discover_page(page: int) -> list[dict]:
             "api_key": TMDB_API_KEY,
             "language": "pt-BR",
             "sort_by": TMDB_SORT_BY,
+            "primary_release_date.gte": RELEASE_DATE_GTE,
+            "primary_release_date.lte": RELEASE_DATE_LTE,
+            "vote_count.gte": MIN_VOTE_COUNT,
             "page": page,
         },
         api_name="TMDB",
@@ -471,6 +477,10 @@ def main() -> None:
             "tmdb_requests_today": state["tmdb_requests_today"],
             "omdb_requests_today": state["omdb_requests_today"],
             "tmdb_requests_per_sec_limit": TMDB_REQUESTS_PER_SEC,
+            "tmdb_sort_by": TMDB_SORT_BY,
+            "release_date_gte": RELEASE_DATE_GTE,
+            "release_date_lte": RELEASE_DATE_LTE,
+            "min_vote_count": MIN_VOTE_COUNT,
             "omdb_min_interval_sec": OMDB_MIN_INTERVAL_SEC,
             "omdb_daily_limit": OMDB_DAILY_LIMIT,
             "next_discover_page": page,

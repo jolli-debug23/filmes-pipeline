@@ -96,15 +96,20 @@ def plot_genre_frequency(df: pd.DataFrame, top_n: int = 15) -> Path | None:
 
 
 def plot_award_proportion(df: pd.DataFrame) -> Path | None:
-    if "teve_premiacao" not in df.columns:
+    if "teve_reconhecimento" not in df.columns:
         return None
-    counts = df["teve_premiacao"].value_counts().reindex([True, False]).fillna(0)
+    labels = df["teve_reconhecimento"].map(
+        {True: "Com indicação/prêmio", False: "Sem indicação/prêmio"}
+    ).fillna("Sem informação")
+    counts = labels.value_counts().reindex(
+        ["Com indicação/prêmio", "Sem indicação/prêmio", "Sem informação"]
+    ).fillna(0)
     fig, ax = plt.subplots(figsize=(4, 4))
     ax.pie(
         counts.values,
-        labels=["Com indicação/prêmio", "Sem evidência"],
+        labels=counts.index,
         autopct="%1.0f%%",
-        colors=["#C44E52", "#8C8C8C"],
+        colors=["#C44E52", "#4C72B0", "#8C8C8C"],
     )
     ax.set_title("Proporção com indicação/prêmio (OMDB Awards)")
     fig.tight_layout()
@@ -119,7 +124,9 @@ def plot_budget_vs_revenue(df: pd.DataFrame) -> Path | None:
     if plot_df.empty:
         return None
     fig, ax = plt.subplots(figsize=(6, 6))
-    colors = plot_df["teve_premiacao"].map({True: "#C44E52", False: "#4C72B0"})
+    colors = plot_df["teve_reconhecimento"].map(
+        {True: "#C44E52", False: "#4C72B0"}
+    ).fillna("#8C8C8C")
     ax.scatter(plot_df["orcamento"], plot_df["receita"], c=colors, alpha=0.6, s=20)
     ax.set_xscale("log")
     ax.set_yscale("log")
