@@ -1,10 +1,15 @@
-# Python-generated files
-__pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
+# Dado bruto: recriado pelo ingest.py a cada coleta
+data/raw/*
+!data/raw/.gitkeep
 
-# Virtual environments
-.venv
+# Artefatos locais do pipeline
+state/
+logs/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Quarto
+.quarto/
+analises/*.html
+analises/*_files/
