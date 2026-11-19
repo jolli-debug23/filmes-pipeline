@@ -62,6 +62,9 @@ import pandas as pd
 import pandera as pa
 from pandera import Check, Column, DataFrameSchema
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from parametros import DATA_FINAL, DATA_INICIAL, MIN_VOTOS  # noqa: E402
+
 ROOT_DIR = Path(__file__).resolve().parent.parent
 RAW_DIR = ROOT_DIR / "data" / "raw"
 TRUSTED_DIR = ROOT_DIR / "data" / "trusted"
@@ -110,10 +113,32 @@ AWARD_WIN_PATTERN = re.compile(r"\b(win|wins|won|winner|winners)\b", re.IGNORECA
 AWARD_NOMINATION_PATTERN = re.compile(
     r"\b(nominated|nomination|nominations)\b", re.IGNORECASE
 )
+# Oscar: o texto do OMDB começa com "Won N Oscar(s)" ou "Nominated for N
+# Oscar(s)" quando existe. Quem venceu também foi indicado.
+OSCAR_WIN_PATTERN = re.compile(r"\bWon\s+(?:\d+\s+)?Oscars?\b", re.IGNORECASE)
+OSCAR_NOMINATION_PATTERN = re.compile(
+    r"\bNominated\s+for\s+(?:\d+\s+)?Oscars?\b", re.IGNORECASE
+)
+COUNT_WINS_PATTERN = re.compile(r"(\d+)\s+wins?\b", re.IGNORECASE)
+COUNT_NOMINATIONS_PATTERN = re.compile(r"(\d+)\s+nominations?\b", re.IGNORECASE)
 
 
-def parse_awards(raw: str | None) -> dict[str, bool | None]:
-    """Separa vitória, indicação e ausência de informação no texto Awards."""
+def parse_awards(raw: str | None) -> dict[str, bool | int | None]:
+    """Separa o texto Awards do OMDB em colunas.
+
+    Regras (decisão da equipe, registrada no relatório):
+    - Texto ausente ou "N/A": o OMDB não traz informação de prêmios.
+      awards_sem_informacao = True e as colunas gerais ficam nulas.
+    - teve_indicacao, teve_vitoria, teve_reconhecimento: qualquer prêmio
+      ou indicação (de qualquer festival). Quase todo filme que tem texto
+      tem alguma coisa, então estas colunas quase não variam entre os
+      filmes com informação. Servem como controle, não como alvo.
+    - n_vitorias e n_indicacoes: o número que o OMDB informa
+      ("58 wins & 86 nominations total"). Nulo quando não há texto.
+    - teve_oscar_vitoria e teve_oscar: Oscar. Sem texto, o valor é False,
+      porque uma indicação ao Oscar sempre aparece no texto do OMDB. É
+      suposição declarada e foi conferida com filmes conhecidos.
+    """
     raw = na_if_placeholder(raw)
     if raw is None:
         return {
@@ -121,15 +146,36 @@ def parse_awards(raw: str | None) -> dict[str, bool | None]:
             "teve_vitoria": None,
             "teve_reconhecimento": None,
             "awards_sem_informacao": True,
+            "n_vitorias": None,
+            "n_indicacoes": None,
+            "teve_oscar_vitoria": False,
+            "teve_oscar": False,
         }
 
     teve_indicacao = bool(AWARD_NOMINATION_PATTERN.search(raw))
     teve_vitoria = bool(AWARD_WIN_PATTERN.search(raw))
+
+    vitorias = sum(int(n) for n in COUNT_WINS_PATTERN.findall(raw))
+    if vitorias == 0:
+        m = re.match(r"\s*Won\s+(\d+)", raw, re.IGNORECASE)
+        vitorias = int(m.group(1)) if m else 0
+    indicacoes = sum(int(n) for n in COUNT_NOMINATIONS_PATTERN.findall(raw))
+    if indicacoes == 0:
+        m = re.match(r"\s*Nominated\s+for\s+(\d+)", raw, re.IGNORECASE)
+        indicacoes = int(m.group(1)) if m else 0
+
+    oscar_vitoria = bool(OSCAR_WIN_PATTERN.search(raw))
+    oscar = oscar_vitoria or bool(OSCAR_NOMINATION_PATTERN.search(raw))
+
     return {
         "teve_indicacao": teve_indicacao,
         "teve_vitoria": teve_vitoria,
         "teve_reconhecimento": teve_indicacao or teve_vitoria,
         "awards_sem_informacao": False,
+        "n_vitorias": vitorias,
+        "n_indicacoes": indicacoes,
+        "teve_oscar_vitoria": oscar_vitoria,
+        "teve_oscar": oscar,
     }
 
 
@@ -206,8 +252,55 @@ def flatten_record(record: dict) -> dict:
     }
 
 
+ORIGEM_NOVA = "universo_por_mes"
+ORIGEM_LEGADO = "legado_popularidade"
+
+
 def build_dataframe(records: list[dict]) -> pd.DataFrame:
-    return pd.DataFrame(flatten_record(r) for r in records)
+    """Uma linha por registro bruto, mais a origem da coleta.
+
+    O ingest.py novo marca cada filme que busca com origem_coleta =
+    "universo_por_mes". Os filmes de coletas anteriores, feitas pelos mais
+    populares, não têm a marca e ficam como "legado_popularidade". Um filme
+    é "universo_por_mes" se qualquer registro dele tiver a marca. Isso
+    permite medir se a origem da coleta muda o resultado."""
+    marcados = {r.get("tmdb_id") for r in records if r.get("origem_coleta") == ORIGEM_NOVA}
+    df = pd.DataFrame(flatten_record(r) for r in records)
+    df["origem_coleta"] = [
+        ORIGEM_NOVA if i in marcados else ORIGEM_LEGADO for i in df["tmdb_id"]
+    ]
+    return df
+
+
+def aplicar_universo(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, int]]:
+    """Mantém só os filmes do universo definido em src/parametros.py: lançados
+    entre DATA_INICIAL e DATA_FINAL e com pelo menos MIN_VOTOS votos.
+
+    Os filmes de fora continuam no data/raw/, só não entram na trusted. Isso
+    deixa usar um raw coletado antes de o universo existir, sem apagar nada,
+    e garante que o mesmo critério vale para todo filme, venha de onde vier.
+    Não é quarentena: o dado destes filmes não está errado, só está fora do
+    recorte da pergunta."""
+    data = pd.to_datetime(df["data_lancamento"], errors="coerce")
+    sem_data = data.isna()
+    fora_do_periodo = ~sem_data & ((data < DATA_INICIAL) | (data > DATA_FINAL))
+    votos = pd.to_numeric(df["n_votos_tmdb"], errors="coerce").fillna(0)
+    poucos_votos = ~sem_data & ~fora_do_periodo & (votos < MIN_VOTOS)
+    dentro = ~(sem_data | fora_do_periodo | poucos_votos)
+    resumo = {
+        "antes": len(df),
+        "sem_data": int(sem_data.sum()),
+        "fora_do_periodo": int(fora_do_periodo.sum()),
+        "poucos_votos": int(poucos_votos.sum()),
+        "dentro": int(dentro.sum()),
+    }
+    log.info(
+        "Universo (%s a %s, no mínimo %d votos): %d de %d filmes dentro. Fora: %d sem data, "
+        "%d fora do período, %d com poucos votos.",
+        DATA_INICIAL, DATA_FINAL, MIN_VOTOS, resumo["dentro"], resumo["antes"],
+        resumo["sem_data"], resumo["fora_do_periodo"], resumo["poucos_votos"],
+    )
+    return df[dentro].copy(), resumo
 
 
 # --------------------------------------------------------------------------
@@ -274,10 +367,21 @@ CONTRACT = DataFrameSchema(
         "nota_imdb": Column(float, Check.in_range(0, 10, error="nota_imdb_fora_do_intervalo"), nullable=True),
         "metascore": Column(float, Check.in_range(0, 100, error="metascore_fora_do_intervalo"), nullable=True),
         "premios_texto": Column(str, nullable=True),
-        "teve_indicacao": Column(bool, nullable=True),
-        "teve_vitoria": Column(bool, nullable=True),
-        "teve_reconhecimento": Column(bool, nullable=True),
+        # "boolean" (com B minúsculo) é o tipo que aceita nulo. Com bool, o
+        # coerce=True trocava o nulo de "sem informação" por False sem avisar.
+        "teve_indicacao": Column("boolean", nullable=True),
+        "teve_vitoria": Column("boolean", nullable=True),
+        "teve_reconhecimento": Column("boolean", nullable=True),
         "awards_sem_informacao": Column(bool, nullable=False),
+        "n_vitorias": Column(float, Check(_num_ok, error="vitorias_negativas"), nullable=True),
+        "n_indicacoes": Column(float, Check(_num_ok, error="indicacoes_negativas"), nullable=True),
+        "teve_oscar_vitoria": Column(bool, nullable=False),
+        "teve_oscar": Column(bool, nullable=False),
+        "origem_coleta": Column(
+            str,
+            Check.isin([ORIGEM_NOVA, ORIGEM_LEGADO], error="origem_coleta_desconhecida"),
+            nullable=False,
+        ),
     },
     checks=[
         # Regra de negócio de tabela, envolvendo duas colunas: um filme
@@ -359,17 +463,30 @@ def main() -> None:
 
     df = build_dataframe(records)
     df = remove_duplicates(df)
+    n_unicos = len(df)
+    df, universo = aplicar_universo(df)
 
     trusted_df, quarantine_df = validate_and_split(df)
     write_outputs(trusted_df, quarantine_df)
 
     # Resumo por motivo, exigido pelo desafio da aula-5
+    print(f"Filmes diferentes no raw: {n_unicos}")
+    print(
+        f"Fora do universo ({DATA_INICIAL} a {DATA_FINAL}, no mínimo {MIN_VOTOS} votos): "
+        f"{universo['antes'] - universo['dentro']} "
+        f"(sem data {universo['sem_data']}, fora do período {universo['fora_do_periodo']}, "
+        f"poucos votos {universo['poucos_votos']}). Continuam no raw."
+    )
     print(f"Total processado: {len(df)}")
     print(f"Foram para data/trusted/filmes.parquet: {len(trusted_df)}")
     print(f"Foram para data/quarentena/filmes_quarentena.csv: {len(quarantine_df)}")
     if len(quarantine_df):
         print("Motivos da quarentena:")
         print(quarantine_df["motivo_quarentena"].value_counts().to_string())
+
+    if len(trusted_df):
+        print("Origem da coleta na trusted:")
+        print(trusted_df["origem_coleta"].value_counts().to_string())
 
     log.info(
         "Concluído: %d em trusted, %d em quarentena.",

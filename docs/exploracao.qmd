@@ -1,0 +1,397 @@
+---
+title: "Exploração: filmes (TMDB + OMDB)"
+subtitle: "Atividade Prática Etapa 2, Introdução à Ciência de Dados"
+author: "João Victor Oliveira Silva (20231SI0005) e Akilan Henderson Ribeiro Gomes ([PREENCHER matrícula])"
+date: today
+format:
+  html:
+    toc: true
+    code-fold: show
+execute:
+  echo: true
+---
+
+## Contexto
+
+A pergunta da Etapa 1 era: quais atributos de um filme estão associados a ele
+ter recebido premiação. Este documento explora a camada trusted
+(`data/trusted/filmes.parquet`) para chegar a hipóteses que a Etapa 3 vai
+confirmar ou derrubar.
+
+**O que conta como premiação.** O OMDB não traz premiação pronta. Ele traz um
+texto livre no campo `Awards`, como `Won 1 Oscar. 58 wins & 86 nominations
+total`. Quando o filme não tem nada, o texto é `N/A`. Ao medir o texto de uma
+coleta anterior, 908 dos 909 filmes com texto tinham alguma indicação ou
+vitória. Ou seja, "ter algum prêmio" quase não separa um filme do outro. A
+equipe decidiu usar o **Oscar** (indicado ou vencedor) como medida principal,
+na coluna `teve_oscar`, e deixar as contagens `n_vitorias` e `n_indicacoes`
+como apoio. As colunas gerais (`teve_reconhecimento` e parentes) continuam na
+trusted como controle. Um filme sem registro no OMDB (`tem_dado_omdb` falso)
+não entra nas contas de Oscar, porque nele a ausência de texto não quer dizer
+nada.
+
+**O universo.** A trusted só tem filmes lançados entre `DATA_INICIAL` e
+`DATA_FINAL` com pelo menos `MIN_VOTOS` votos (valores em `src/parametros.py`).
+A coluna `origem_coleta` diz se o filme veio de uma coleta anterior, feita pelos
+mais populares (`legado_popularidade`), ou da coleta por mês (`universo_por_mes`).
+Coletar só os mais populares puxa a amostra para filmes premiados, então essa
+coluna serve para medir o efeito (bloco 3.5).
+
+## 1. A parte guardada
+
+O dado tem data de lançamento, então o corte é **por tempo**. Os filmes
+lançados em `DATA_CORTE` (definida em `src/parametros.py`) ou depois ficam
+guardados. A exploração inteira, daqui em diante, passa pelas views `filmes` e
+`filmes_omdb`, que excluem a parte guardada. A view `_trusted` só aparece
+neste bloco.
+
+Por que esse corte: os filmes mais novos do universo são os que mais se parecem
+com o uso real do que a equipe descobrir (prever o presente com o passado), e
+um sorteio misturaria filmes do mesmo ano nas duas partes. O tamanho da parte
+guardada aparece abaixo.
+
+```{python}
+import sys
+
+sys.path.insert(0, "src")
+
+import duckdb
+import pandas as pd
+from IPython.display import display
+from parametros import DATA_CORTE
+
+pd.set_option("display.max_columns", 30)
+pd.set_option("display.width", 140)
+
+con = duckdb.connect()
+con.execute("CREATE VIEW _trusted AS SELECT * FROM read_parquet('data/trusted/filmes.parquet')")
+con.execute(
+    f"""
+    CREATE VIEW filmes AS
+    SELECT * FROM _trusted
+    WHERE NOT COALESCE(TRY_CAST(data_lancamento AS DATE) >= DATE '{DATA_CORTE}', FALSE)
+    """
+)
+con.execute("CREATE VIEW filmes_omdb AS SELECT * FROM filmes WHERE tem_dado_omdb")
+
+tamanhos = con.sql(
+    f"""
+    SELECT (SELECT COUNT(*) FROM _trusted) AS total_na_trusted,
+           (SELECT COUNT(*) FROM filmes) AS base_de_exploracao,
+           (SELECT COUNT(*) FROM _trusted
+             WHERE COALESCE(TRY_CAST(data_lancamento AS DATE) >= DATE '{DATA_CORTE}', FALSE)) AS parte_guardada
+    """
+).df()
+print("Corte por tempo:", DATA_CORTE)
+
+# a base de exploração não pode ter nenhum filme do período guardado
+_maior = con.execute("SELECT MAX(data_lancamento) FROM filmes").fetchall()[0][0]
+assert _maior is None or _maior < DATA_CORTE
+tamanhos
+```
+
+## 2. As perguntas e as expectativas
+
+Escritas antes de qualquer consulta.
+
+| # | Pergunta | Colunas | Expectativa |
+|---|---|---|---|
+| P1 | A proporção de filmes com Oscar muda de um gênero para outro? | `generos`, `teve_oscar`, `data_lancamento` | Drama e História têm a maior proporção, porque a premiação favorece dramas e filmes de época. Terror e Comédia têm a menor. Esperamos que isso valha em todas as décadas. |
+| P2 | Filmes de orçamento maior têm mais Oscar? | `orcamento`, `teve_oscar`, `tem_franquia` | A proporção sobe do orçamento mais baixo para os intermediários e não continua subindo no mais alto. Nos orçamentos altos, os filmes de franquia têm proporção menor que os fora de franquia. |
+| P3 | A nota da crítica (`metascore`) separa o Oscar melhor que a nota do público (`nota_imdb`)? | `metascore`, `nota_imdb`, `n_votos_tmdb`, `teve_oscar` | Sim. Quem premia é a crítica e a academia, então a diferença entre a faixa alta e a baixa do Metascore deve ser maior que a do IMDb. Com poucos votos a nota do público oscila mais, e a diferença deve ser ainda menor. |
+
+## 3. A varredura
+
+### 3.1 Cada coluna sozinha
+
+```{python}
+resumo = con.sql("SUMMARIZE filmes").df()
+resumo[["column_name", "column_type", "min", "max", "approx_unique", "avg", "q50", "null_percentage"]]
+```
+
+```{python}
+def contagem(coluna, limite=8):
+    return con.sql(
+        f"""
+        SELECT {coluna}, COUNT(*) AS n,
+               ROUND(100.0 * COUNT(*) / SUM(COUNT(*)) OVER (), 1) AS pct
+        FROM filmes GROUP BY {coluna} ORDER BY n DESC LIMIT {limite}
+        """
+    ).df()
+
+
+for coluna in ["idioma_original", "pais_producao", "status", "tem_franquia", "teve_oscar", "awards_sem_informacao"]:
+    display(contagem(coluna))
+```
+
+```{python}
+# gêneros: um filme tem vários, então a soma passa de 100%
+con.sql(
+    """
+    SELECT genero, COUNT(*) AS filmes
+    FROM (SELECT UNNEST(string_split(generos, ';')) AS genero FROM filmes WHERE generos IS NOT NULL)
+    GROUP BY genero ORDER BY filmes DESC
+    """
+).df()
+```
+
+> **O que se vê:** [PREENCHER depois de rodar. Observar: quantos filmes por ano
+> (a coleta foi distribuída por ano?), qual idioma e país dominam, quantos
+> filmes têm Oscar, e quantos não têm registro de Awards.]
+
+### 3.2 P1: gênero e Oscar
+
+Duas colunas: gênero e `teve_oscar`. Só entram gêneros com pelo menos 20 filmes.
+Atenção: um filme com três gêneros aparece três vezes, então as linhas não
+somam o total de filmes.
+
+```{python}
+# com a coleta completa, só entram gêneros com 20 filmes ou mais
+MIN_N = 20 if int(tamanhos["base_de_exploracao"][0]) >= 300 else 1
+generos = con.sql(
+    f"""
+    WITH g AS (
+        SELECT UNNEST(string_split(generos, ';')) AS genero,
+               CAST(teve_oscar AS INTEGER) AS oscar
+        FROM filmes_omdb WHERE generos IS NOT NULL
+    )
+    SELECT genero, COUNT(*) AS n, SUM(oscar) AS com_oscar,
+           ROUND(100.0 * SUM(oscar) / COUNT(*), 1) AS pct_oscar
+    FROM g GROUP BY genero HAVING COUNT(*) >= {MIN_N} ORDER BY pct_oscar DESC
+    """
+).df()
+generos
+```
+
+Terceira coluna: década. Tabela cruzada com os seis gêneros mais frequentes.
+
+```{python}
+top = generos.sort_values("n", ascending=False).head(6)["genero"].tolist()
+lista = ", ".join("'" + g.replace("'", "''") + "'" for g in top) or "''"
+por_decada = con.sql(
+    f"""
+    WITH g AS (
+        SELECT UNNEST(string_split(generos, ';')) AS genero,
+               (year(TRY_CAST(data_lancamento AS DATE)) // 10) * 10 AS decada,
+               CAST(teve_oscar AS INTEGER) AS oscar
+        FROM filmes_omdb WHERE generos IS NOT NULL
+    )
+    SELECT genero, decada, COUNT(*) AS n, ROUND(100.0 * SUM(oscar) / COUNT(*), 1) AS pct_oscar
+    FROM g WHERE genero IN ({lista}) AND decada IS NOT NULL
+    GROUP BY genero, decada
+    """
+).df()
+print("% com Oscar, por gênero e década")
+display(por_decada.pivot(index="genero", columns="decada", values="pct_oscar"))
+print("número de filmes em cada célula")
+display(por_decada.pivot(index="genero", columns="decada", values="n"))
+```
+
+> **O que se vê:** [PREENCHER. Comparar com a expectativa de P1. Olhar o número
+> de filmes das células antes de confiar em qualquer porcentagem.]
+
+### 3.3 P2: orçamento e Oscar
+
+Duas colunas: orçamento (só filmes com orçamento conhecido) em quatro faixas de
+tamanho igual, e `teve_oscar`.
+
+```{python}
+orcamento = con.sql(
+    """
+    WITH b AS (
+        SELECT orcamento, tem_franquia, CAST(teve_oscar AS INTEGER) AS oscar,
+               NTILE(4) OVER (ORDER BY orcamento) AS quartil
+        FROM filmes_omdb WHERE orcamento IS NOT NULL
+    )
+    SELECT quartil, MIN(orcamento) AS de, MAX(orcamento) AS ate, COUNT(*) AS n,
+           ROUND(100.0 * SUM(oscar) / COUNT(*), 1) AS pct_oscar
+    FROM b GROUP BY quartil ORDER BY quartil
+    """
+).df()
+orcamento
+```
+
+Terceira coluna: `tem_franquia`. Tabela cruzada.
+
+```{python}
+cruzada_orc = con.sql(
+    """
+    WITH b AS (
+        SELECT tem_franquia, CAST(teve_oscar AS INTEGER) AS oscar,
+               NTILE(4) OVER (ORDER BY orcamento) AS quartil
+        FROM filmes_omdb WHERE orcamento IS NOT NULL
+    )
+    SELECT quartil, tem_franquia, COUNT(*) AS n,
+           ROUND(100.0 * SUM(oscar) / COUNT(*), 1) AS pct_oscar
+    FROM b GROUP BY quartil, tem_franquia
+    """
+).df()
+print("% com Oscar")
+display(cruzada_orc.pivot(index="quartil", columns="tem_franquia", values="pct_oscar"))
+print("número de filmes")
+display(cruzada_orc.pivot(index="quartil", columns="tem_franquia", values="n"))
+```
+
+> **O que se vê:** [PREENCHER. Lembrar que o orçamento zero do TMDB já virou
+> ausente na trusted, e que esses filmes ficam fora desta pergunta.]
+
+### 3.4 P3: nota da crítica, nota do público e Oscar
+
+Duas colunas: `metascore` em faixas e `teve_oscar`, depois o mesmo com
+`nota_imdb`.
+
+```{python}
+faixas = """
+    CASE WHEN metascore < 40 THEN '1. menos de 40'
+         WHEN metascore < 60 THEN '2. 40 a 59'
+         WHEN metascore < 80 THEN '3. 60 a 79'
+         ELSE '4. 80 ou mais' END
+"""
+faixas_imdb = """
+    CASE WHEN nota_imdb < 6 THEN '1. menos de 6'
+         WHEN nota_imdb < 7 THEN '2. 6 a 6,9'
+         WHEN nota_imdb < 8 THEN '3. 7 a 7,9'
+         ELSE '4. 8 ou mais' END
+"""
+for rotulo, coluna, expr in [("metascore", "metascore", faixas), ("nota_imdb", "nota_imdb", faixas_imdb)]:
+    print(rotulo)
+    display(
+        con.sql(
+            f"""
+            SELECT {expr} AS faixa, COUNT(*) AS n,
+                   ROUND(100.0 * SUM(CAST(teve_oscar AS INTEGER)) / COUNT(*), 1) AS pct_oscar
+            FROM filmes_omdb WHERE {coluna} IS NOT NULL GROUP BY 1 ORDER BY 1
+            """
+        ).df()
+    )
+```
+
+Terceira coluna: número de votos. Tabela cruzada: faixa do Metascore por faixa
+da nota do IMDb.
+
+```{python}
+cruzada_notas = con.sql(
+    f"""
+    SELECT {faixas} AS faixa_metascore, {faixas_imdb} AS faixa_imdb,
+           COUNT(*) AS n,
+           ROUND(100.0 * SUM(CAST(teve_oscar AS INTEGER)) / COUNT(*), 1) AS pct_oscar
+    FROM filmes_omdb WHERE metascore IS NOT NULL AND nota_imdb IS NOT NULL
+    GROUP BY 1, 2
+    """
+).df()
+print("% com Oscar")
+display(cruzada_notas.pivot(index="faixa_metascore", columns="faixa_imdb", values="pct_oscar"))
+print("número de filmes")
+display(cruzada_notas.pivot(index="faixa_metascore", columns="faixa_imdb", values="n"))
+
+votos = con.sql(
+    f"""
+    SELECT CASE WHEN n_votos_tmdb < 1000 THEN '1. menos de 1000'
+                WHEN n_votos_tmdb < 5000 THEN '2. 1000 a 4999'
+                ELSE '3. 5000 ou mais' END AS faixa_votos,
+           {faixas} AS faixa_metascore, COUNT(*) AS n,
+           ROUND(100.0 * SUM(CAST(teve_oscar AS INTEGER)) / COUNT(*), 1) AS pct_oscar
+    FROM filmes_omdb WHERE metascore IS NOT NULL
+    GROUP BY 1, 2
+    """
+).df()
+print("% com Oscar por faixa de votos e faixa do Metascore")
+votos.pivot(index="faixa_votos", columns="faixa_metascore", values="pct_oscar")
+```
+
+> **O que se vê:** [PREENCHER. Comparar a diferença entre a faixa mais alta e a
+> mais baixa do Metascore com a mesma diferença no IMDb.]
+
+### 3.5 Controle: a origem da coleta
+
+Não é uma pergunta nova, é uma checagem do dado. Os filmes de coletas
+anteriores foram buscados pelos mais populares. Se eles tiverem mais Oscar que
+os da coleta por mês, a amostra antiga puxava para filmes premiados, e o valor
+de `teve_oscar` na trusted depende de como o filme foi coletado.
+
+```{python}
+con.sql(
+    """
+    SELECT origem_coleta, COUNT(*) AS n,
+           ROUND(100.0 * SUM(CAST(teve_oscar AS INTEGER)) / COUNT(*), 1) AS pct_oscar
+    FROM filmes_omdb GROUP BY origem_coleta ORDER BY origem_coleta
+    """
+).df()
+```
+
+```{python}
+origem_decada = con.sql(
+    """
+    SELECT origem_coleta, (year(TRY_CAST(data_lancamento AS DATE)) // 10) * 10 AS decada,
+           COUNT(*) AS n,
+           ROUND(100.0 * SUM(CAST(teve_oscar AS INTEGER)) / COUNT(*), 1) AS pct_oscar
+    FROM filmes_omdb GROUP BY 1, 2
+    """
+).df()
+print("% com Oscar por origem e década (a comparação justa é dentro da mesma década)")
+display(origem_decada.pivot(index="decada", columns="origem_coleta", values="pct_oscar"))
+print("número de filmes")
+origem_decada.pivot(index="decada", columns="origem_coleta", values="n")
+```
+
+> **O que se vê:** [PREENCHER. Se a diferença entre as duas origens for grande
+> dentro da mesma década, tratar a origem como variável de controle nas
+> hipóteses da Etapa 3 e registrar no relatório.]
+
+## 4. A quarentena relida
+
+O `transform.py` grava `data/quarentena/filmes_quarentena.csv`. Relemos esses
+filmes com as perguntas desta etapa: eles se concentram em alguma década ou
+gênero, de modo que a base de exploração represente o universo de forma
+diferente do que deveria? A parte guardada também é excluída aqui.
+
+```{python}
+quarentena_bruta = pd.read_csv("data/quarentena/filmes_quarentena.csv")
+con.register("_quarentena", quarentena_bruta)
+con.execute(
+    f"""
+    CREATE VIEW quarentena AS
+    SELECT * FROM _quarentena
+    WHERE NOT COALESCE(TRY_CAST(data_lancamento AS DATE) >= DATE '{DATA_CORTE}', FALSE)
+    """
+)
+display(con.sql("SELECT motivo_quarentena, COUNT(*) AS n FROM quarentena GROUP BY 1 ORDER BY n DESC").df())
+
+comparacao = con.sql(
+    """
+    SELECT 'quarentena' AS grupo, (year(TRY_CAST(data_lancamento AS DATE)) // 10) * 10 AS decada, COUNT(*) AS n
+    FROM quarentena GROUP BY 2
+    UNION ALL
+    SELECT 'trusted', (year(TRY_CAST(data_lancamento AS DATE)) // 10) * 10, COUNT(*) FROM filmes GROUP BY 2
+    """
+).df()
+comparacao.pivot(index="decada", columns="grupo", values="n")
+```
+
+> **O que se vê:** [PREENCHER. A quarentena é pequena em relação à trusted? Ela
+> concentra alguma década ou algum gênero? Se não concentra, deixá-la de fora
+> não muda as respostas das perguntas.]
+
+## 5. Hipóteses a confirmar
+
+Uma linha por pergunta. A previsão é escrita com números, de modo que a parte
+guardada possa confirmá-la ou derrubá-la na Etapa 3. Regra para escolher o
+número X: usar metade da diferença que a varredura mostrou, assim uma diferença
+real passa e um acaso não.
+
+| # | Hipótese | Previsão para a parte guardada | Derrubada se |
+|---|---|---|---|
+| P1 | Drama tem mais Oscar que Comédia | [PREENCHER] Nos filmes lançados a partir de `DATA_CORTE`, a proporção com Oscar de Drama é pelo menos [X] pontos percentuais maior que a de Comédia. | A diferença for menor que [X] pontos, ou Comédia ficar acima. |
+| P2 | O Oscar aparece mais nos orçamentos intermediários | [PREENCHER] A proporção com Oscar do 2º e do 3º quartil de orçamento é maior que a do 1º e a do 4º. | Algum extremo (1º ou 4º) ficar acima dos dois intermediários. |
+| P3 | O Metascore separa o Oscar melhor que a nota do IMDb | [PREENCHER] A proporção com Oscar da faixa 80 ou mais do Metascore menos a da faixa abaixo de 40 é maior que a mesma diferença no IMDb (8 ou mais contra menos de 6). | A diferença do IMDb for igual ou maior que a do Metascore. |
+
+## 6. Perguntas para depois
+
+Sem investigar agora.
+
+- Diretor com filme recente premiado tem mais chance de ter outro filme premiado?
+- O mês de lançamento importa (filmes de fim de ano contra os do meio do ano)?
+- Os filmes sem registro de Awards no OMDB diferem dos demais em gênero ou orçamento?
+- O resultado muda se o alvo for `n_vitorias` maior ou igual a 5 em vez do Oscar?
+- O elenco principal ajuda a prever o Oscar além do gênero?
+- Filmes de outros países e idiomas têm Oscar na mesma proporção que os de língua inglesa?
