@@ -5,14 +5,15 @@ Este texto segue a ordem do enunciado e descreve exatamente o que o
 
 ## 1. O processo de negócio
 
-Um filme **estreia**. A partir da estreia, ele passa a ser avaliado pelo público
-e pela crítica, e pode receber indicações e prêmios. Os registros da fonte
-descrevem esse acontecimento: cada filme com a sua data de estreia, as notas e o
-texto de prêmios.
+**Um filme estreia e recebe avaliações e reconhecimentos.**
+
+Os registros da fonte descrevem esse acontecimento: cada filme com a sua data de
+estreia, as notas do público e da crítica e o texto de prêmios.
 
 ## 2. A granularidade
 
-**Uma linha por filme** (um `tmdb_id`), como ele estava no dia da coleta.
+**Uma linha por `tmdb_id`**, representando o estado conhecido do filme na data da
+coleta.
 
 Uma linha mais grossa, por década e gênero, esconde o filme. A pergunta da
 equipe é "o que distingue um filme com Oscar dos outros", e isso só se responde
@@ -31,10 +32,10 @@ estreia, uma origem, um perfil, e gêneros.
 
 | Dimensão | Dois atributos para filtrar ou agrupar | Por que vale para "uma linha por filme" |
 |---|---|---|
-| `dim_data` | `ano` e `decada` (também `mes` e `parte_guardada`) | O filme estreia em um dia. A chave é a própria data, e a dimensão cobre todos os dias do período, inclusive os sem estreia. |
-| `dim_origem` | `pais_producao` e `idioma_original` | Cada filme tem um país de produção (o primeiro que o TMDB lista) e um idioma original. |
-| `dim_perfil` | `tem_franquia` e `status` (também `origem_coleta`) | O filme pertence ou não a uma franquia, tem um status de lançamento e foi coletado de um jeito (por mês, ou pelos mais populares numa coleta antiga). |
-| `dim_genero` | `genero_nome` e `grupo_genero` | O filme tem gêneros. Como são vários, ficam ligados pela ponte (item 5). |
+| `dim_data` | `ano` e `decada` (também `mes` e `parte_guardada`) | O filme estreia em um dia. A chave é a própria data. A dimensão cobre todos os dias entre a data mínima e máxima da trusted, inclusive os dias sem estreia. Filmes sem data ficam visíveis na conferência como uma chave nula e não podem ser escondidos pela dimensão. |
+| `dim_origem` | `pais_producao` e `idioma_original` | Cada filme tem um país de produção (o primeiro país listado pelo TMDB) e um idioma original. Os valores nulos são representados por `desconhecido`. |
+| `dim_perfil` | `tem_franquia` e `status` (também `origem_coleta`) | O filme pertence ou não a uma franquia, tem um status de lançamento e uma origem de coleta (por mês ou pelos mais populares numa coleta antiga). |
+| `dim_genero` | `genero_nome` e `grupo_genero` | O gênero detalhado reduz a pergunta à granularidade filme-gênero; `grupo_genero` agrupa gêneros maiores sem alterar a chave detalhada. Como um filme tem vários gêneros, a relação fica na ponte (item 5), em vez de repetir medidas na fato. |
 
 O `grupo_genero` junta os gêneros do TMDB em cinco grupos mais um grupo
 "Outros" (Ação e aventura, Suspense e crime, Drama e romance, Comédia e
@@ -52,8 +53,8 @@ Todas as dimensões, menos a de data, têm chave substituta (`origem_sk`,
 | `duracao_min`, `orcamento`, `receita`, `n_votos_tmdb` | Aditiva. A soma entre filmes faz sentido. Orçamento e receita só existem para parte dos filmes (zero do TMDB virou ausente), então a média é soma dividida pela contagem de filmes com valor. |
 | `n_vitorias`, `n_indicacoes` | Aditiva. São contagens de prêmios de cada filme. Nulas quando o OMDB não traz texto de prêmios. |
 | `teve_oscar`, `teve_oscar_vitoria`, `teve_indicacao`, `teve_vitoria`, `teve_reconhecimento`, `awards_sem_informacao`, `tem_dado_omdb` | Aditiva como contagem de 0 e 1. A **proporção** é soma dividida pela contagem de filmes do grupo, nunca média de proporções nem soma de proporções. |
-| `nota_tmdb`, `nota_imdb`, `metascore` | Não aditiva. Nunca somar notas para responder nada. A conta certa é a soma dividida pela contagem de filmes com nota. |
-| `popularidade_tmdb` | Não aditiva. É um índice de um momento. Só serve para média ou comparação. |
+| `nota_tmdb`, `nota_imdb`, `metascore` | Não aditiva. Nunca somar notas para responder uma pergunta analítica; a soma só é usada pelo `CONFERENCIA` para conferir integridade. A conta analítica certa é soma dividida pela contagem de filmes com nota válida. |
+| `popularidade_tmdb` | Não aditiva. É um índice de um momento. Só serve para média ou comparação. Sua soma no script existe apenas para conferência de integridade. |
 
 ## 5. O que é de outra granularidade
 

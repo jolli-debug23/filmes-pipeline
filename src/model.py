@@ -6,8 +6,8 @@ Uso:
     uv run python src/model.py --teste-falha     (ver "Teste de parada")
 
 O desenho (resumo, o texto completo está no relatório):
-    Processo de negócio: um filme estreia e passa a ser avaliado pelo
-        público e pela crítica e a receber indicações e prêmios.
+    Processo de negócio: Um filme estreia e recebe avaliações e
+        reconhecimentos.
     Granularidade da fato_filme: uma linha por filme (um tmdb_id).
     Dimensões: dim_data, dim_origem, dim_perfil, dim_genero.
     Ponte: ponte_filme_genero (um filme tem vários gêneros).
@@ -318,9 +318,9 @@ def agregada(con: duckdb.DuckDBPyConnection) -> None:
                COUNT(f.orcamento) AS n_com_orcamento,
                SUM(f.orcamento) AS soma_orcamento,
                COUNT(f.nota_imdb) AS n_com_nota_imdb,
-               SUM(f.nota_imdb) AS soma_nota_imdb,
+               ROUND(SUM(f.nota_imdb), 2) AS soma_nota_imdb,
                COUNT(f.metascore) AS n_com_metascore,
-               SUM(f.metascore) AS soma_metascore
+               ROUND(SUM(f.metascore), 2) AS soma_metascore
         FROM fato_filme f
         JOIN ponte_filme_genero p ON p.tmdb_id = f.tmdb_id
         LEFT JOIN dim_data d ON d.data = f.data_lancamento

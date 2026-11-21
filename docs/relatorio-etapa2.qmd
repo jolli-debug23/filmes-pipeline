@@ -1,0 +1,320 @@
+---
+title: "Atividade Prática da Etapa 2"
+subtitle: "Da Camada Trusted ao Gold — Pipeline de Dados de Filmes (TMDB/OMDb)"
+author:
+  - "João Victor Oliveira Silva — Matrícula 20231SI0005"
+  - "Akilan Henderson Ribeiro Gomes — Matrícula 20222SI0024"
+format:
+  pdf:
+    documentclass: scrartcl
+    papersize: a4
+    geometry: margin=1.8cm
+    toc: false
+execute:
+  echo: false
+  warning: false
+---
+
+**Instituição:** Instituto Federal do Maranhão (IFMA) — Campus Monte Castelo  
+**Disciplina:** Introdução à Ciência de Dados  
+**Título:** Atividade Prática da Etapa 2: Da Camada Trusted ao Gold
+
+\newpage
+
+# Parte 1 — Coleta e mudanças desde a Etapa 1
+
+A coleta analisada corresponde à base armazenada em `data/raw/` em
+20/09/2026. O conjunto contém 46 arquivos JSON, com 1.594 registros brutos.
+Após remoção de duplicatas, aplicação do universo — filmes entre 2000 e 2024
+com pelo menos 100 votos — e validação pelo contrato, a camada principal
+termina com 625 filmes em `data/trusted/filmes.parquet`.
+
+| Etapa | Resultado principal |
+|---|---:|
+| Arquivos JSON em `data/raw/` | 46 |
+| Registros brutos registrados | 1.594 |
+| Filmes diferentes na base principal validada | 625 |
+| Filmes reservados pela parte guardada | 95 |
+| Base usada na exploração | 530 |
+| Registros em quarentena | 0 |
+
+Na Etapa 1, o dado bruto passou por normalização, remoção de duplicatas,
+conversão de valores, classificação das premiações do OMDb e aplicação de
+regras de negócio. O contrato `pandera` avalia coluna por coluna e separa
+aquilo que passa daquilo que falha. Zero em orçamento ou receita do TMDB é
+tratado como ausência, pois não representa um custo ou faturamento efetivo.
+Da mesma forma, `nota_tmdb` é nula quando não existem votos.
+
+No campo semiestruturado `Awards`, ausência ou texto `N/A` não é convertido em
+ausência de premiação: as indicações e vitórias ficam nulas e
+`awards_sem_informacao` registra essa situação. O texto é parseado para
+`n_vitorias`, `n_indicacoes`, `teve_oscar` e `teve_oscar_vitoria`. Uma
+inconsistência forte, como filme lançado sem duração, é enviada à quarentena.
+Nesta coleta, `data/quarentena/filmes_quarentena.csv` existe, mas contém zero
+registros.
+
+Desde a Etapa 1, a equipe também removeu `.env` do rastreamento e do histórico
+local do Git, blindou arquivos locais no `.gitignore`, manteve apenas um
+`.env.example` vazio e reorganizou os documentos Quarto na pasta `analises/`.
+
+# Parte 2 — Exploração, parte guardada e hipóteses
+
+O corte da parte guardada é por tempo: filmes lançados a partir de
+`2023-01-01` são reservados. A escolha é coerente com o dado, pois existe data
+de lançamento e a Etapa 3 pode usar filmes novos para confirmar ou derrubar
+previsões aprendidas no passado. Um sorteio misturaria anos da mesma base.
+
+Na base principal de 625 filmes, 530 pertencem à exploração e 95 ficam na parte
+guardada. Todas as consultas posteriores usam `filmes` ou `filmes_omdb`;
+`_trusted` é consultada apenas no bloco inicial que informa o tamanho do corte.
+
+## P1 — Gênero e Oscar
+
+A unidade da varredura é o par filme-gênero, porque um filme pode ter vários
+gêneros. Os filmes com OMDb conhecido são considerados. Os principais resultados
+são:
+
+| Gênero | Ocorrências filme-gênero | Com Oscar | Proporção |
+|---|---:|---:|---:|
+| História | 19 | 14 | 73,7% |
+| Drama | 151 | 87 | 57,6% |
+| Aventura | 223 | 91 | 40,8% |
+| Comédia | 144 | 45 | 31,3% |
+| Ação | 229 | 70 | 30,6% |
+| Terror | 54 | 5 | 9,3% |
+
+Drama e História confirmam a expectativa de proporções altas. Comédia e Terror
+confirmam a expectativa de proporções baixas. História tinha apenas seis filmes
+em 2000 e 13 em 2010; Terror tinha 11 filmes em 2020. Essas células são
+pequenas e não sustentam conclusões universais por década.
+
+Na exploração, os gêneros são individuais. No Gold, a dimensão
+`dim_genero.grupo_genero` agrupa gêneros menores em categorias maiores para
+comparações com volume suficiente. Um filme permanece em várias linhas
+filme-gênero e não pode ser contado uma vez ao somar os gêneros.
+
+## P2 — Orçamento e franquia
+
+O orçamento conhecido foi dividido em quatro quartis:
+
+| Quartil | Intervalo | Filmes | Com Oscar |
+|---|---:|---:|---:|
+| Q1 | R\$ 230.758 — R\$ 38 milhões | 129 | 32,6% |
+| Q2 | R\$ 39 milhões — R\$ 90 milhões | 129 | 24,8% |
+| Q3 | R\$ 90 milhões — R\$ 150 milhões | 128 | 44,5% |
+| Q4 | R\$ 150 milhões — R\$ 658,8 milhões | 128 | 48,4% |
+
+O padrão não é monotônico e o pico aparece no quartil mais alto. Dentro de
+franquia, os percentuais passam de 11,8% no Q1 para 52,1% no Q4; fora de
+franquia passam de 46,2% no Q1 para 38,2% no Q4. Portanto, no Q4 há inversão:
+52,1% em franquias contra 38,2% fora de franquias. Todas as células têm pelo
+menos 34 filmes.
+
+## P3 — Metascore, IMDb e votos
+
+O Metascore separa melhor o Oscar nos extremos:
+
+| Medida | Faixa baixa | Faixa alta | Diferença |
+|---|---:|---:|---:|
+| Metascore | 0,0% | 81,5% | 81,5 p.p. |
+| IMDb | 3,3% | 78,5% | 75,2 p.p. |
+
+O controle por votos também apoia a separação para a faixa de pelo menos
+5.000 votos: 63 de 73 filmes com Metascore 80 ou mais têm Oscar (86,3%), contra
+nenhum dos 26 filmes abaixo de 40 (0,0%). As células com menos de 1.000 votos
+são pequenas e não sustentam conclusão isolada.
+
+## Hipóteses reservadas para a Etapa 3
+
+| Hipótese | Previsão para a parte guardada | Critério de derrubada |
+|---|---|---|
+| P1 | Drama terá pelo menos 20 p.p. mais Oscar que Comédia. Diferença observada: 26,3 p.p. | Diferença abaixo de 20 p.p., reversão ou Comédia acima. |
+| P2 | Q4 terá pelo menos 12 p.p. mais Oscar que Q2. Diferença observada: 23,6 p.p. | Outro quartil superar Q4 ou diferença não atingir 12 p.p. |
+| P2 — franquia | No Q4, franquias terão pelo menos 10 p.p. mais Oscar que não franquias. | Não franquias superarem franquias por 10 p.p. ou mais. |
+| P3 | Diferença extrema do Metascore será pelo menos 3 p.p. maior que a do IMDb. Diferença observada: 6,3 p.p. | IMDb empatar ou superar Metascore. |
+
+# Parte 3 — Desenho do Star Schema e validação do Gold
+
+## Processo de negócio
+
+**Um filme estreia e recebe avaliações e reconhecimentos.**
+
+## Granularidade
+
+A fato principal `fato_filme` possui uma linha por `tmdb_id`, representando o
+estado conhecido do filme na coleta. Não é uma linha por década ou gênero,
+pois isso esconderia o filme individual. Também não é uma linha por filme e
+gênero, pois orçamento e receita seriam repetidos e somados em duplicidade.
+
+## Dimensões e ponte
+
+- `dim_data`: chave natural `data`; cobre todos os dias entre o mínimo e o
+  máximo da trusted, incluindo dias sem estreia. Filmes sem data são detectados
+  pela conferência.
+- `dim_origem`: chave substituta `origem_sk`; atributos `pais_producao` e
+  `idioma_original`, usando o primeiro país informado pelo TMDB.
+- `dim_perfil`: chave substituta `perfil_sk`; combina `status`,
+  `tem_franquia` e `origem_coleta`.
+- `dim_genero`: chave substituta `genero_sk`; contém `genero_nome` e
+  `grupo_genero`.
+- `ponte_filme_genero`: 1.835 pares filme-gênero ligam a fato à dimensão sem
+  repetir as medidas do filme.
+
+Diretor e elenco principal ficam fora do Gold nesta etapa. A estrutura poderia
+receber uma dimensão e ponte própria em etapa posterior.
+
+## Medidas
+
+São aditivas `duracao_min`, `orcamento`, `receita`, `n_votos_tmdb`,
+`n_vitorias`, `n_indicacoes` e os indicadores 0/1 de Oscar e reconhecimento.
+Popularidade e notas não são aditivas. Somente o script usa suas somas para
+conferência de integridade. Para análise, proporções são contagens válidas
+divididas pela base correspondente, nunca médias de proporções.
+
+## Fato agregada
+
+`fato_oscar_genero_decada` possui uma linha por `decada, genero_sk`, totalizando
+51 linhas na base validada. Responde à proporção de filmes indicados ou
+vencedores do Oscar por gênero e década. O filtro é
+`COALESCE(tem_dado_omdb, 0) = 1`; do contrário, ausência de texto não seria
+ausência de Oscar. O `tmdb_id` é perdido. A proporção é `n_oscar / n_filmes`.
+
+## Saída normal do `src/model.py`
+
+```text
+filmes sem data de lançamento (chave de data nula na fato): 0
+
+CONFERÊNCIA trusted x gold
+item                                           trusted                gold  bate
+linhas                                             625                 625  sim
+soma duracao_min                                75.168              75.168  sim
+soma orcamento                          60.851.168.763      60.851.168.763  sim
+soma receita                           239.468.432.649     239.468.432.649  sim
+soma n_votos_tmdb                            5.822.572           5.822.572  sim
+soma popularidade_tmdb                       14.513,21           14.513,21  sim
+soma nota_tmdb                                4.435,40            4.435,40  sim
+soma nota_imdb                                4.343,20            4.343,20  sim
+soma metascore                                  38.149              38.149  sim
+soma n_vitorias                                 14.997              14.997  sim
+soma n_indicacoes                               32.374              32.374  sim
+soma teve_oscar                                    219                 219  sim
+soma teve_oscar_vitoria                             97                  97  sim
+soma teve_indicacao                                616                 616  sim
+soma teve_vitoria                                  557                 557  sim
+soma teve_reconhecimento                           617                 617  sim
+soma awards_sem_informacao                           7                   7  sim
+soma tem_dado_omdb                                 625                 625  sim
+
+CONFERÊNCIA fato agregada x fato_filme
+item                                        fato_filme            agregada  bate
+n_filmes (par filme-gênero)                      1.835               1.835  sim
+n_oscar                                            656                 656  sim
+n_oscar_vitoria                                    287                 287  sim
+n_com_orcamento                                  1.773               1.773  sim
+soma_orcamento                         191.299.275.526     191.299.275.526  sim
+n_com_nota_imdb                                  1.835               1.835  sim
+soma_nota_imdb                               12.774,80           12.774,80  sim
+n_com_metascore                                  1.802               1.802  sim
+soma_metascore                                 112.533             112.533  sim
+
+Tudo bate. 7 tabelas gravadas em /home/akilan/Documentos/filmes-pipeline/data/gold:
+ - dim_data.parquet: 9.051 linhas
+ - dim_origem.parquet: 38 linhas
+ - dim_perfil.parquet: 2 linhas
+ - dim_genero.parquet: 18 linhas
+ - ponte_filme_genero.parquet: 1.835 linhas
+ - fato_filme.parquet: 625 linhas
+ - fato_oscar_genero_decada.parquet: 51 linhas
+```
+
+## Saída de falha controlada
+
+```text
+filmes sem data de lançamento (chave de data nula na fato): 0
+
+CONFERÊNCIA trusted x gold
+item                                           trusted                gold  bate
+linhas                                             625                 625  sim
+soma duracao_min                                75.168              75.168  sim
+soma orcamento                          60.851.168.763      60.851.168.763  sim
+soma receita                           239.468.432.649     239.468.432.649  sim
+soma n_votos_tmdb                            5.822.572           5.822.572  sim
+soma popularidade_tmdb                       14.513,21           14.513,21  sim
+soma nota_tmdb                                4.435,40            4.435,40  sim
+soma nota_imdb                                4.343,20            4.343,20  sim
+soma metascore                                  38.149              38.149  sim
+soma n_vitorias                                 14.997              14.997  sim
+soma n_indicacoes                               32.374              32.374  sim
+soma teve_oscar                                    219                 219  sim
+soma teve_oscar_vitoria                             97                  97  sim
+soma teve_indicacao                                616                 616  sim
+soma teve_vitoria                                  557                 557  sim
+soma teve_reconhecimento                           617                 617  sim
+soma awards_sem_informacao                           7                   7  sim
+soma tem_dado_omdb                                 625                 625  sim
+
+CONFERÊNCIA fato agregada x fato_filme
+item                                        fato_filme            agregada  bate
+n_filmes (par filme-gênero)                      1.835               1.835  sim
+n_oscar                                            656                 656  sim
+n_oscar_vitoria                                    287                 287  sim
+n_com_orcamento                                  1.773               1.773  sim
+soma_orcamento                         191.299.275.526     191.299.275.526  sim
+n_com_nota_imdb                                  1.835               1.835  sim
+soma_nota_imdb                               12.774,80           12.774,80  sim
+n_com_metascore                                  1.802               1.802  sim
+soma_metascore                                 112.533             112.533  sim
+
+PROBLEMAS ENCONTRADOS
+ - falta em dim_data.data a chave usada por fato_filme.data_lancamento: 2024-12-26
+
+A conferência falhou. Nada foi gravado em data/gold/.
+
+EXIT_CODE=1
+```
+
+O teste indica o pai `dim_data.data`, a filha
+`fato_filme.data_lancamento` e a chave ausente `2024-12-26`. Antes da gravação,
+nenhum arquivo é criado ou sobrescrito. A execução normal posterior restaurou
+as sete tabelas válidas.
+
+As duas execuções normais confirmaram idempotência lógica nas sete tabelas.
+Os 51 registros da agregada e os 625 registros da fato permanecem estáveis.
+
+# Parte 4 — Dificuldades e retrabalho
+
+O zero utilizado pelo TMDB em orçamento e receita exigiu tratamento como
+ausência, não como valor econômico. O mesmo ocorreu com a duração nula de
+filmes lançados, uma regra que dirige registros suspeitos à quarentena.
+
+O campo `Awards` do OMDb exigiu análise textual por expressões regulares. Sua
+ausência precisa ser distinguida da ausência de premiação. Essa decisão exigiu
+variáveis booleanas anuláveis e uma contagem separada de informações faltantes.
+
+A revisão de segurança exigiu remover `.env` do índice e reescrever o histórico
+local e remoto. A chave antiga precisou ser revogada e substituída, enquanto o
+arquivo local continuou preservado e ignorado pelo Git.
+
+Na exploração, não havia registros de `universo_por_mes` anteriores ao corte
+de 2023 nesta base principal. Por isso, origem da coleta não pôde ser
+comparada entre duas origens antes da parte guardada. A conclusão foi conservar
+essa variável como controle da Etapa 3.
+
+História em 2000 e 2010 e todas as décadas recentes têm células pequenas. O
+relato evita converter essas porcentagens em leis universais. A hipótese de
+História, por exemplo, é baseada em apenas 19 ocorrências.
+
+# Parte 5 — Uso de Inteligência Artificial
+
+As ferramentas de inteligência artificial foram usadas como apoio técnico e
+editorial no projeto. A equipe utilizou um assistente integrado ao VS Code
+para auditar a conformidade dos documentos contra o PDF da atividade,
+organizar tarefas por escopo, revisar consultas DuckDB e Quarto, comparar
+`src/model.py` com o desenho Star Schema e revisar redações do README e deste
+relatório.
+
+Todas as decisões substantivas foram confrontadas com arquivos locais e
+execuções reais. A equipe rodou `uv sync`, os scripts do pipeline, as
+renderizações Quarto, o modelo normal, o teste de falha e as verificações de
+Git no ambiente local. As conclusões numéricas vieram dos dados da trusted,
+não foram inventadas pela ferramenta de IA.

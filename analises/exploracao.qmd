@@ -1,7 +1,7 @@
 ---
 title: "Exploração: filmes (TMDB + OMDB)"
 subtitle: "Atividade Prática Etapa 2, Introdução à Ciência de Dados"
-author: "João Victor Oliveira Silva (20231SI0005) e Akilan Henderson Ribeiro Gomes ([PREENCHER matrícula])"
+author: "João Victor Oliveira Silva (20231SI0005) e Akilan Henderson Ribeiro Gomes (20222SI0024)"
 date: today
 format:
   html:
@@ -135,9 +135,15 @@ con.sql(
 ).df()
 ```
 
-> **O que se vê:** [PREENCHER depois de rodar. Observar: quantos filmes por ano
-> (a coleta foi distribuída por ano?), qual idioma e país dominam, quantos
-> filmes têm Oscar, e quantos não têm registro de Awards.]
+> **O que se vê:** A trusted tem 625 filmes, dos quais 530 ficaram na base de
+> exploração e 95 foram guardados a partir de 2023. Todos os 530 filmes da base
+> têm registro no OMDB. Entre eles, 194 têm Oscar e 336 não têm.
+>
+> A base tem forte concentração em inglês (505 filmes) e nos Estados Unidos
+> (369 filmes). Por ano, o maior volume está em 2019 (39), 2017 (35), 2018
+> (30) e 2016 (32); não há distribuição uniforme, mas não há concentração
+> equivalente a uma única década. Isso será considerado ao interpretar as
+> porcentagens por gênero e década.
 
 ### 3.2 P1: gênero e Oscar
 
@@ -187,8 +193,25 @@ print("número de filmes em cada célula")
 display(por_decada.pivot(index="genero", columns="decada", values="n"))
 ```
 
-> **O que se vê:** [PREENCHER. Comparar com a expectativa de P1. Olhar o número
-> de filmes das células antes de confiar em qualquer porcentagem.]
+> **O que se vê:** A expectativa foi parcialmente confirmada. Drama aparece em
+> 151 ocorrências filme-gênero e tem Oscar em 87, 57,6%. História tem 14 de 19,
+> 73,7%, mas ficou abaixo do limite geral de 20 linhas individuais usado na
+> tabela ordenada e merece cautela. Terror tem apenas 5 Oscar em 54, 9,3%, e
+> Comédia tem 45 em 144, 31,3%. Assim, Drama e História têm proporção alta,
+> enquanto Terror e Comédia têm proporção baixa.
+>
+> A vantagem muda por década: Drama cai de 60,8% em 2000 para 54,8% em 2010 e
+> sobe para 62,5% em 2020, mas a célula de 2020 tem apenas 16 filmes; Comédia
+> fica entre 28,6% e 33,3% nas décadas observadas. Terror tem 13,3% em 2010
+> e nenhuma ocorrência com Oscar em 2020, mas essa última célula tem 11 filmes.
+> As linhas de História têm 6 filmes em 2000 e 13 em 2010, por isso não podem
+> sustentar uma comparação estável em todas as décadas.
+>
+> Esta exploração trabalha gêneros individuais ligados por uma linha por
+> filme-gênero. No Gold, eles podem ser reduzidos pelo `grupo_genero` para
+> comparar categorias maiores com mais volume. Os percentuais continuam sendo
+> `n_oscar / n_filmes`; um filme com vários gêneros permanece em várias linhas
+> e não pode ser contado uma vez ao somar gêneros.
 
 ### 3.3 P2: orçamento e Oscar
 
@@ -232,8 +255,19 @@ print("número de filmes")
 display(cruzada_orc.pivot(index="quartil", columns="tem_franquia", values="n"))
 ```
 
-> **O que se vê:** [PREENCHER. Lembrar que o orçamento zero do TMDB já virou
-> ausente na trusted, e que esses filmes ficam fora desta pergunta.]
+> **O que se vê:** Os resultados não seguem uma subida simples. Os 129 filmes
+> do 1º quartil têm 32,6% com Oscar, os 129 do 2º quartil têm 24,8%, os 128 do
+> 3º quartil têm 44,5% e os 128 do 4º quartil têm 48,4%.
+>
+> O orçamento conhecido não mostra um pico apenas nos intermediários: o 4º
+> quartil é o maior. Dentro da franquia, a proporção sobe de 11,8% no 1º
+> quartil para 52,1% no 4º. Fora da franquia, a variação é menor: 46,2%, 38,6%,
+> 48,0% e 38,2%.
+>
+> As células têm pelo menos 34 filmes, exceto nenhuma apresenta amostra
+> desprezível neste corte. Mesmo assim, a diferença fora da franquia é menos
+> regular. Os filmes sem orçamento conhecido ficaram fora desta pergunta,
+> porque a trusted transformou o zero do TMDB em ausência.
 
 ### 3.4 P3: nota da crítica, nota do público e Oscar
 
@@ -299,8 +333,21 @@ print("% com Oscar por faixa de votos e faixa do Metascore")
 votos.pivot(index="faixa_votos", columns="faixa_metascore", values="pct_oscar")
 ```
 
-> **O que se vê:** [PREENCHER. Comparar a diferença entre a faixa mais alta e a
-> mais baixa do Metascore com a mesma diferença no IMDb.]
+> **O que se vê:** Metascore separa o Oscar com uma diferença mais forte que o
+> IMDb. Na faixa mais baixa do Metascore, nenhuma das 40 observações tem Oscar;
+> na faixa mais alta, 66 de 81 têm Oscar, 81,5%. A diferença extrema é de
+> 81,5 pontos percentuais.
+>
+> Para o IMDb, a faixa abaixo de 6 tem 2 Oscar em 61, 3,3%, enquanto a faixa
+> de 8 ou mais tem 62 em 79, 78,5%. A diferença é de 75,2 pontos percentuais,
+> portanto 6,3 pontos menor que a diferença do Metascore.
+>
+> O controle por votos reforça a associação, mas produz células pequenas. Entre
+> filmes com pelo menos 5.000 votos, 63 de 73 com Metascore de 80 ou mais têm
+> Oscar, 86,3%, contra 0 de 26 abaixo de 40. Nas poucas observações com menos
+> de 1.000 votos, não há célula suficiente para comparar extremos com confiança.
+> Por isso, a conclusão principal usa as faixas gerais e trata o cruzamento por
+> votos como controle, não como prova isolada.
 
 ### 3.5 Controle: a origem da coleta
 
@@ -334,9 +381,16 @@ print("número de filmes")
 origem_decada.pivot(index="decada", columns="origem_coleta", values="n")
 ```
 
-> **O que se vê:** [PREENCHER. Se a diferença entre as duas origens for grande
-> dentro da mesma década, tratar a origem como variável de controle nas
-> hipóteses da Etapa 3 e registrar no relatório.]
+> **O que se vê:** Nesta base exploratória, todos os 530 filmes são da origem
+> `legado_popularidade`; não há observações de `universo_por_mes` antes de 2023
+> nesta execução. A origem não pode ser comparada dentro da amostra atual.
+>
+> Ainda assim, ela aparece em todos os registros e representa uma coleta baseada
+> em popularidade, que pode puxar a amostra para filmes mais premiados. Para a
+> Etapa 3, a origem deve permanecer como variável de controle e não pode servir
+> como explicação exclusiva do Oscar. A distribuição por década mostra 43,3%
+> com Oscar em 2000, 35,3% em 2010 e 28,9% em 2020, mas todas pertencem à mesma
+> origem.
 
 ## 4. A quarentena relida
 
@@ -368,9 +422,11 @@ comparacao = con.sql(
 comparacao.pivot(index="decada", columns="grupo", values="n")
 ```
 
-> **O que se vê:** [PREENCHER. A quarentena é pequena em relação à trusted? Ela
-> concentra alguma década ou algum gênero? Se não concentra, deixá-la de fora
-> não muda as respostas das perguntas.]
+> **O que se vê:** Não há registros na quarentena atual: o arquivo existe, mas
+> contém zero linhas. Portanto, não é possível comparar década ou gênero da
+> quarentena com a trusted e não há concentração isolada removida da exploração.
+> Como não há registros de quarentena, a exclusão deles não altera P1, P2 ou P3
+> nesta execução.
 
 ## 5. Hipóteses a confirmar
 
@@ -381,9 +437,9 @@ real passa e um acaso não.
 
 | # | Hipótese | Previsão para a parte guardada | Derrubada se |
 |---|---|---|---|
-| P1 | Drama tem mais Oscar que Comédia | [PREENCHER] Nos filmes lançados a partir de `DATA_CORTE`, a proporção com Oscar de Drama é pelo menos [X] pontos percentuais maior que a de Comédia. | A diferença for menor que [X] pontos, ou Comédia ficar acima. |
-| P2 | O Oscar aparece mais nos orçamentos intermediários | [PREENCHER] A proporção com Oscar do 2º e do 3º quartil de orçamento é maior que a do 1º e a do 4º. | Algum extremo (1º ou 4º) ficar acima dos dois intermediários. |
-| P3 | O Metascore separa o Oscar melhor que a nota do IMDb | [PREENCHER] A proporção com Oscar da faixa 80 ou mais do Metascore menos a da faixa abaixo de 40 é maior que a mesma diferença no IMDb (8 ou mais contra menos de 6). | A diferença do IMDb for igual ou maior que a do Metascore. |
+| P1 | Drama tem mais Oscar que Comédia | Nos filmes lançados a partir de `DATA_CORTE`, Drama terá pelo menos 20 pontos percentuais a mais que Comédia. Na exploração, Drama teve 57,6% contra 31,3%, diferença de 26,3 pontos. | A diferença for menor que 20 pontos, Drama ficar abaixo de Comédia, ou a ordem se inverter. |
+| P2 | O Oscar cresce com o orçamento e a franquia muda a relação | Nos filmes lançados a partir de `DATA_CORTE`, o 4º quartil terá pelo menos 12 pontos percentuais a mais que o 2º quartil. Na exploração, 48,4% contra 24,8%, diferença de 23,6 pontos. Também esperamos que franquias tenham pelo menos 10 pontos acima de não franquias no 4º quartil. | O 2º ou outro quartil superar o 4º por 12 pontos ou mais, ou não franquias ficarem pelo menos 10 pontos acima das franquias no mesmo quartil. |
+| P3 | O Metascore separa o Oscar melhor que o IMDb | Nos filmes lançados a partir de `DATA_CORTE`, a diferença extrema do Metascore será pelo menos 3 pontos percentuais maior que a do IMDb. Na exploração, 81,5 pontos contra 75,2, diferença de 6,3 pontos. | A diferença do IMDb superar ou empatar a do Metascore, ou o Metascore perder vantagem por pelo menos 3 pontos percentuais. |
 
 ## 6. Perguntas para depois
 
