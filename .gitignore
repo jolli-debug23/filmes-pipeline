@@ -13,3 +13,6 @@ __pycache__/
 .quarto/
 analises/*.html
 analises/*_files/
+
+/.quarto/
+**/*.quarto_ipynb
