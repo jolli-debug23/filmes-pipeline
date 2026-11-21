@@ -1,18 +1,22 @@
-# Dado bruto: recriado pelo ingest.py a cada coleta
+# Segredos e ambiente local
+.env
+.venv/
+
+# Dados e artefatos locais do pipeline
 data/raw/*
 !data/raw/.gitkeep
-
-# Artefatos locais do pipeline
+data/trusted/*
+data/quarentena/*
+data/gold/*
 state/
 logs/
+
+# Cache e ferramentas
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
-
-# Quarto
 .quarto/
+
+# Saídas locais do Quarto
 analises/*.html
 analises/*_files/
-
-/.quarto/
-**/*.quarto_ipynb
