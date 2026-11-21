@@ -20,3 +20,6 @@ __pycache__/
 # Saídas locais do Quarto
 analises/*.html
 analises/*_files/
+
+/.quarto/
+**/*.quarto_ipynb
